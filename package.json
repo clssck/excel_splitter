@@ -29,7 +29,14 @@
       "buildResources": "build"
     },
     "win": {
-      "target": "portable",
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "build/icon.ico"
     },
     "extraFiles": [

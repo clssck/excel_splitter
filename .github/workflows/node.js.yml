@@ -46,7 +46,10 @@ jobs:
       - run: npm ci
 
       # Build Electron app
-      - run: npm run build --if-present
+      - name: Build Portable and DMG
+        env:
+          DEBUG: "electron-builder"
+        run: npx electron-builder build --win portable --x64 --mac dmg
 
       # Debug: List files in dist/ after build
       - name: List dist files
@@ -55,13 +58,7 @@ jobs:
           ls -R dist || dir dist
 
       # Zip the Windows portable .exe
-      - name: Zip Windows portable exe
-        if: matrix.os == 'windows-latest'
-        run: |
-          $exes = Get-ChildItem -Path dist/win* -Filter *.exe -Recurse
-          foreach ($exe in $exes) {
-            Compress-Archive -Path $exe.FullName -DestinationPath "$($exe.DirectoryName)\$($exe.BaseName).zip" -Force
-          }
+      # (Removed zipping step; upload .exe directly)
 
       # Upload built installers as artifacts for release job
       - name: Upload installers
@@ -69,7 +66,7 @@ jobs:
         with:
           name: installers-${{ matrix.os }}-${{ matrix.node-version }}
           path: |
-            dist/**/*.zip
+            dist/**/*.exe
             dist/**/*.dmg
 
       # Run tests
@@ -89,7 +86,7 @@ jobs:
       - name: Create GitHub Release and Upload Installers
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "dist/*/!(*elevate|*Setup)*.zip,dist/**/*.dmg"
+          artifacts: "dist/**/*.exe,dist/**/*.dmg"
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: auto-release-${{ github.run_number }}
           name: "Automated Release ${{ github.run_number }}"
