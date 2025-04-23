@@ -46,10 +46,17 @@ jobs:
       - run: npm ci
 
       # Build Electron app
-      - name: Build Portable and DMG
+      - name: Build Portable (Windows)
+        if: matrix.os == 'windows-latest'
         env:
           DEBUG: "electron-builder"
-        run: npx electron-builder build --win portable --x64 --mac dmg
+        run: npx electron-builder build --win portable --x64
+
+      - name: Build DMG (macOS)
+        if: matrix.os == 'macos-latest'
+        env:
+          DEBUG: "electron-builder"
+        run: npx electron-builder build --mac dmg
 
       # Debug: List files in dist/ after build
       - name: List dist files
