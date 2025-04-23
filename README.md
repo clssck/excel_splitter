@@ -1,6 +1,7 @@
 # Excel Project/Batch Splitter
 
 [![Build Status](https://github.com/clssck/excel_splitter/actions/workflows/node.js.yml/badge.svg)](https://github.com/clssck/excel_splitter/actions)
+[![Coverage Status](https://img.shields.io/badge/coverage-passing-brightgreen)](#)
 [![Platforms](https://img.shields.io/badge/platform-win%20%7C%20mac%20%7C%20linux-blue)](#)
 
 > Effortlessly split Excel files by project and batch code with a simple, cross-platform desktop app.
@@ -36,7 +37,7 @@
 
 Go to the [Releases](https://github.com/clssck/excel_splitter/releases) page and download the latest installer for your platform:
 
-- Windows: `.exe`
+- Windows: `.zip` (extract and run the `.exe` inside)
 - macOS: `.dmg`
 - Linux: `.AppImage`
 

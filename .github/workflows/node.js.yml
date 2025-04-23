@@ -48,16 +48,21 @@ jobs:
       # Build Electron app
       - run: npm run build --if-present
 
+      # Zip the Windows portable .exe
+      - name: Zip Windows portable exe
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd dist/win*
+          for %%f in (*.exe) do powershell Compress-Archive -Path "%%f" -DestinationPath "%%~nf.zip"
+
       # Upload built installers as artifacts for release job
       - name: Upload installers
         uses: actions/upload-artifact@v4
         with:
           name: installers-${{ matrix.os }}-${{ matrix.node-version }}
           path: |
-            dist/**/*.exe
+            dist/*/!(*elevate|*Setup)*.zip
             dist/**/*.dmg
-            dist/**/*.AppImage
-            dist/**/*.zip
 
       # Run tests
       - run: npm test
@@ -66,7 +71,7 @@ jobs:
     name: Release
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    if: (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release]')) || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4
       - name: Download build artifacts
@@ -76,10 +81,10 @@ jobs:
       - name: Create GitHub Release and Upload Installers
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "dist/**/*.exe,dist/**/*.dmg,dist/**/*.AppImage,dist/**/*.zip"
+          artifacts: "dist/*/!(*elevate|*Setup)*.zip,dist/**/*.dmg"
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: auto-release-${{ github.run_number }}
           name: "Automated Release ${{ github.run_number }}"
-          body: "Automated release of Electron installers for commit ${{ github.sha }}."
+          body: "This release was triggered automatically.\n\nIncluded assets:\n- Windows: .zip (extract and run the .exe inside)\n- macOS: .dmg\n\nTo trigger a release, push to main with a commit message containing [release], or use the Run workflow button in Actions."
           draft: false
           prerelease: false

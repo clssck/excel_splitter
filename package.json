@@ -14,7 +14,9 @@
   },
   "devDependencies": {
     "electron": "^29.0.0",
-    "electron-builder": "^24.13.2"
+    "electron-builder": "^24.13.2",
+    "husky": "^8.0.0",
+    "lint-staged": "^15.0.0"
   },
   "build": {
     "appId": "com.example.excelprojectbatchsplitter",
@@ -26,7 +28,7 @@
       "buildResources": "build"
     },
     "win": {
-      "target": "nsis",
+      "target": "portable",
       "icon": "build/icon.ico"
     },
     "extraFiles": [
@@ -54,5 +56,16 @@
     "publish": null
   },
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "lint-staged": {
+    "*.js": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  }
 }
