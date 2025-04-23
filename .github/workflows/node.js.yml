@@ -48,12 +48,20 @@ jobs:
       # Build Electron app
       - run: npm run build --if-present
 
+      # Debug: List files in dist/ after build
+      - name: List dist files
+        run: |
+          echo "Listing dist/ contents:"
+          ls -R dist || dir dist
+
       # Zip the Windows portable .exe
       - name: Zip Windows portable exe
         if: matrix.os == 'windows-latest'
         run: |
-          cd dist/win*
-          Get-ChildItem -Filter *.exe | ForEach-Object { Compress-Archive -Path $_.FullName -DestinationPath "$($_.BaseName).zip" }
+          $exes = Get-ChildItem -Path dist/win* -Filter *.exe -Recurse
+          foreach ($exe in $exes) {
+            Compress-Archive -Path $exe.FullName -DestinationPath "$($exe.DirectoryName)\$($exe.BaseName).zip" -Force
+          }
 
       # Upload built installers as artifacts for release job
       - name: Upload installers
