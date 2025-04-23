@@ -1,0 +1,47 @@
+{
+  "name": "excel-project-batch-splitter",
+  "version": "1.0.0",
+  "description": "Electron app to split Excel files by project_code and batch_code with GUI file/directory selection.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --config.nsis.artifactName=\"${productName}-Setup-${version}.${ext}\""
+  },
+  "dependencies": {
+    "xlsx": "^0.18.5",
+    "exceljs": "^4.4.0"
+  },
+  "devDependencies": {
+    "electron": "^29.0.0",
+    "electron-builder": "^24.13.2"
+  },
+  "build": {
+    "appId": "com.example.excelprojectbatchsplitter",
+    "productName": "Excel Project/Batch Splitter",
+    "files": [
+      "**/*"
+    ],
+    "directories": {
+      "buildResources": "build"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "mac": {
+      "target": ["dmg"],
+      "icon": "build/icon.icns"
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "publish": null
+  },
+  "author": "",
+  "license": "MIT"
+}

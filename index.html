@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Excel Project/Batch Splitter</title>
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self';">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --gray-bg: #181a1b;
+      --gray-card: #232526cc;
+      --gray-card-blur: rgba(35,37,38,0.85);
+      --gray-light: #2c2f31;
+      --gray-dark: #101112;
+      --accent: #4f8cff;
+      --accent2: #a0bfff;
+      --error: #ff4d4f;
+      --success: #4fd18c;
+      --radius: 14px;
+      --shadow: 0 4px 32px 0 rgba(0,0,0,0.18);
+      --transition: 0.18s cubic-bezier(.4,0,.2,1);
+      --glass-blur: blur(16px);
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: 'SF Pro Display', 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #232526 0%, #181a1b 100%);
+      color: #f3f3f3;
+      min-height: 100vh;
+      width: 100vw;
+      box-sizing: border-box;
+      overflow-x: hidden;
+    }
+    .center-container {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      width: 100vw;
+      position: relative;
+    }
+    .background-blur {
+      position: absolute;
+      top: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60vw;
+      height: 60vh;
+      background: radial-gradient(circle at 60% 40%, #4f8cff33 0%, transparent 80%);
+      filter: blur(32px);
+      z-index: 0;
+      pointer-events: none;
+    }
+    .app-card {
+      background: var(--gray-card);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      padding: clamp(18px, 4vw, 40px) clamp(12px, 4vw, 40px) clamp(18px, 4vw, 32px) clamp(12px, 4vw, 40px);
+      min-width: 320px;
+      min-height: 320px;
+      width: clamp(340px, 48vw, 540px);
+      max-width: 90vw;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      position: relative;
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1.5px solid #23252655;
+      margin: clamp(12px, 4vh, 32px) 0;
+      transition: width 0.3s, height 0.3s, padding 0.3s;
+      z-index: 1;
+    }
+    .app-title {
+      font-size: clamp(1.1em, 2.2vw, 2em);
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      color: #f3f3f3;
+      text-align: center;
+      margin-bottom: clamp(12px, 2vw, 24px);
+      margin-top: 0;
+      text-shadow: 0 2px 8px #0003;
+      user-select: none;
+    }
+    .row {
+      margin-bottom: clamp(8px, 1.2vw, 18px);
+      display: flex;
+      align-items: center;
+      gap: clamp(4px, 1vw, 12px);
+      flex-wrap: wrap;
+    }
+    label {
+      width: clamp(90px, 15vw, 140px);
+      font-weight: 400;
+      color: #e0e0e0;
+      letter-spacing: 0.01em;
+      font-size: clamp(0.98em, 1.5vw, 1.15em);
+      user-select: none;
+      flex-shrink: 0;
+    }
+    input[type="text"] {
+      flex: 1 1 120px;
+      min-width: 0;
+      padding: clamp(6px, 1vw, 12px) clamp(8px, 1.5vw, 18px);
+      border: 1.2px solid var(--gray-light);
+      border-radius: var(--radius);
+      background: var(--gray-light);
+      color: #f3f3f3;
+      font-size: clamp(0.98em, 1.5vw, 1.1em);
+      transition: border var(--transition), box-shadow var(--transition);
+      outline: none;
+      box-shadow: 0 1px 4px #0002;
+    }
+    input[type="text"]:focus {
+      border: 1.2px solid var(--accent);
+      box-shadow: 0 0 0 2px #4f8cff33;
+      background: #232526;
+    }
+    button {
+      margin-left: 0;
+      padding: clamp(6px, 1vw, 12px) clamp(14px, 2vw, 28px);
+      border-radius: var(--radius);
+      border: none;
+      background: linear-gradient(90deg, #4f8cffcc 60%, #a0bfffcc 100%);
+      color: #fff;
+      font-weight: 500;
+      font-size: clamp(0.98em, 1.5vw, 1.1em);
+      cursor: pointer;
+      box-shadow: 0 1px 8px #4f8cff18;
+      transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+      outline: none;
+      backdrop-filter: blur(2px);
+    }
+    button:hover, button:focus {
+      background: linear-gradient(90deg, #a0bfffcc 60%, #4f8cffcc 100%);
+      box-shadow: 0 2px 12px #4f8cff33;
+      transform: translateY(-1px) scale(1.02);
+    }
+    #splitBtn {
+      width: 100%;
+      margin-top: clamp(4px, 0.7vw, 12px);
+      font-size: clamp(1.05em, 1.7vw, 1.18em);
+      letter-spacing: 0.01em;
+      box-shadow: 0 2px 12px #4f8cff10;
+      background: linear-gradient(90deg, #4f8cffcc 60%, #a0bfffcc 100%);
+      border-radius: calc(var(--radius) * 0.9);
+      font-weight: 600;
+    }
+    #splitBtn:hover, #splitBtn:focus {
+      background: linear-gradient(90deg, #a0bfffcc 60%, #4f8cffcc 100%);
+    }
+    #status {
+      margin-top: clamp(8px, 1vw, 16px);
+      color: var(--success);
+      font-weight: 500;
+      min-height: 22px;
+      text-align: center;
+      text-shadow: 0 1px 4px #0003;
+      font-size: clamp(0.98em, 1.5vw, 1.1em);
+    }
+    #error {
+      margin-top: clamp(8px, 1vw, 16px);
+      color: var(--error);
+      font-weight: 500;
+      min-height: 22px;
+      text-align: center;
+      text-shadow: 0 1px 4px #0003;
+      font-size: clamp(0.98em, 1.5vw, 1.1em);
+    }
+    @media (max-width: 900px) {
+      .app-card {
+        width: 90vw;
+        min-width: 0;
+        padding: clamp(8px, 2vw, 18px);
+      }
+    }
+    @media (max-width: 600px) {
+      .app-card {
+        min-width: 0;
+        width: 98vw;
+        padding: clamp(6px, 1vw, 12px);
+      }
+      .row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+      }
+      label {
+        width: 100%;
+        margin-bottom: 2px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="center-container">
+    <div class="background-blur"></div>
+    <div class="app-card">
+      <div class="app-title">Excel Project/Batch Splitter</div>
+      <div class="row">
+        <label for="inputFile">Input Excel File:</label>
+        <input type="text" id="inputFile" readonly>
+        <button id="browseInput">Browse...</button>
+      </div>
+      <div class="row">
+        <label for="outputDir">Output Directory:</label>
+        <input type="text" id="outputDir" readonly>
+        <button id="browseOutput">Browse...</button>
+      </div>
+      <div class="row">
+        <button id="splitBtn">Split File</button>
+      </div>
+      <div id="status"></div>
+      <div id="error"></div>
+    </div>
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>
