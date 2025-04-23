@@ -53,7 +53,7 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: |
           cd dist/win*
-          for %%f in (*.exe) do powershell Compress-Archive -Path "%%f" -DestinationPath "%%~nf.zip"
+          Get-ChildItem -Filter *.exe | ForEach-Object { Compress-Archive -Path $_.FullName -DestinationPath "$($_.BaseName).zip" }
 
       # Upload built installers as artifacts for release job
       - name: Upload installers

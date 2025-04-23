@@ -137,3 +137,4 @@ dist
 
 /test
 *.xlsx
+build/lab-vial-excel.svg
