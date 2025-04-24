@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <!-- Allow JIT for V8 -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <!-- Allow unsigned executable memory for V8 -->
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <!-- Disable library validation for Node.js native modules -->
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+    <!-- If your app needs network access -->
+    <!-- <key>com.apple.security.network.client</key> -->
+    <!-- <true/> -->
+    <!-- If your app needs to access user-selected files (add others as needed) -->
+    <!-- <key>com.apple.security.files.user-selected.read-write</key> -->
+    <!-- <true/> -->
+  </dict>
+</plist>
