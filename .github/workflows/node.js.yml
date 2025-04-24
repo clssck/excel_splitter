@@ -66,7 +66,9 @@ jobs:
         if: matrix.os == 'macos-latest'
         env:
           DEBUG: "electron-builder"
-        run: npx electron-builder build --mac dmg
+        run: |
+          npm install dmg-license
+          npx electron-builder build --mac dmg
 
       # Debug: List files in dist/ after build
       - name: List dist files
