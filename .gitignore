@@ -138,3 +138,4 @@ dist
 
 *.xlsx
 build/lab-vial-excel.svg
+.DS_Store
