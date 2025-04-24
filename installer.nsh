@@ -3,7 +3,7 @@
   WriteRegStr HKCR ".xlsx" "" "ExcelProjectBatchSplitter.xlsx"
   WriteRegStr HKCR "ExcelProjectBatchSplitter.xlsx" "" "Excel File"
   WriteRegStr HKCR "ExcelProjectBatchSplitter.xlsx\DefaultIcon" "" "$INSTDIR\resources\app.ico"
-  WriteRegStr HKCR "ExcelProjectBatchSplitter.xlsx\shell\open\command" "" "$INSTDIR\${APP_EXECUTABLE_FILENAME} %1"
+  WriteRegStr HKCR "ExcelProjectBatchSplitter.xlsx\shell\open\command" "" "$INSTDIR\${APP_FILENAME} %1"
 !macroend
 
 Section -RegisterExtensions
