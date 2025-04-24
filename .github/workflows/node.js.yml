@@ -42,15 +42,18 @@ jobs:
             ~/.cache/electron-builder
           key: ${{ runner.os }}-electron-${{ hashFiles('package-lock.json') }}
 
-      # Install dependencies
+      # Install dependencies including rimraf
       - run: npm ci
+      - run: npm install rimraf --save-dev
 
       # Build Electron app
       - name: Build Portable (Windows)
         if: matrix.os == 'windows-latest'
         env:
           DEBUG: "electron-builder"
-        run: npx electron-builder build --win portable --x64
+        run: |
+          npx rimraf dist
+          npx electron-builder build --win portable --x64
 
       - name: Build DMG (macOS)
         if: matrix.os == 'macos-latest'
