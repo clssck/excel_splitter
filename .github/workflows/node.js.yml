@@ -49,7 +49,9 @@ jobs:
       # Install NSIS on Windows for electron-builder
       - name: Install NSIS
         if: matrix.os == 'windows-latest'
-        run: choco install nsis -y
+        run: |
+          choco install nsis --no-progress --accept-license --force
+          echo "##[add-path]C:\ProgramData\chocolatey\bin" >> $env:GITHUB_ENV
 
       # Build Windows Installer (unsigned)
       - name: Build Windows Installer
