@@ -60,7 +60,6 @@ jobs:
           npx rimraf dist
           npx electron-builder build --win --x64 --config.forceCodeSigning=false
           echo "Note: This is an unsigned build. To remove Windows warnings, see CONTRIBUTING.md for code signing instructions"
-          CSC_IDENTITY_AUTO_DISCOVERY=false
 
       - name: Build DMG (macOS)
         if: matrix.os == 'macos-latest'
