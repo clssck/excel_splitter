@@ -46,6 +46,11 @@ jobs:
       - run: npm ci
       - run: npm install rimraf --save-dev
 
+      # Install NSIS on Windows for electron-builder
+      - name: Install NSIS
+        if: matrix.os == 'windows-latest'
+        run: choco install nsis -y
+
       # Build Windows Installer (unsigned)
       - name: Build Windows Installer
         if: matrix.os == 'windows-latest'

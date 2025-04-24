@@ -11,17 +11,18 @@
     "build": "electron-builder --windows",
     "dist": "npm run clean && npm run build",
     "postinstall": "electron-builder install-app-deps",
-    "test": "echo \"No tests specified\" && exit 0"
+    "test": "jest"
   },
   "dependencies": {
     "xlsx": "^0.18.5",
-    "exceljs": "^4.4.0"
+    "exceljs": "^4.4.0",
+    "trash": "^9.0.0"
   },
   "devDependencies": {
-    "electron": "^35.2.0",
-    "electron-builder": "^26.0.12",
-    "husky": "^9.1.7",
-    "lint-staged": "^15.5.1",
+    "electron": "35.2.0",
+    "electron-builder": "26.0.12",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.2",
     "rimraf": "^5.0.5"
   },
   "build": {
@@ -33,10 +34,6 @@
         "name": "Excel File",
         "role": "Editor"
       }
-    ],
-    "files": [
-      "**/*",
-      "!node_modules/{@types*,*.d.ts}"
     ],
     "directories": {
       "buildResources": "build"

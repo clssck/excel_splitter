@@ -11,10 +11,25 @@ const logStream = fs.createWriteStream(
   }
 );
 
-process.on("uncaughtException", (error) => {
+// Enhanced error handling functions
+function handleCriticalError(title, error) {
   const errorTime = new Date().toISOString();
-  logStream.write(`[${errorTime}] Uncaught Exception: ${error.stack}\n\n`);
+  const errorMessage = `${title}: ${error.message || error}\n\nStack Trace:\n${error.stack}`;
+
+  // Write to log file
+  logStream.write(`[${errorTime}] ${errorMessage}\n`);
+
+  // Show dialog even if no window exists
+  dialog.showErrorBox(
+    "Critical Error",
+    `A fatal error occurred:\n\n${errorMessage}\n\n` + `Logs can be found at: ${logStream.path}`
+  );
+
   app.quit();
+}
+
+process.on("uncaughtException", (error) => {
+  handleCriticalError("Uncaught Exception", error);
 });
 const splitExcel = require("./splitExcel");
 
@@ -25,20 +40,60 @@ function handleFile(filePath) {
 }
 
 function createWindow() {
-  mainWindow = new BrowserWindow({
-    width: 900,
-    height: 700,
-    minWidth: 500,
-    minHeight: 400,
-    webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
+  // Create splash screen
+  const splash = new BrowserWindow({
+    width: 400,
+    height: 200,
+    frame: false,
+    alwaysOnTop: true,
     backgroundColor: "#181a1b",
   });
+  // Load splash screen with production path handling
+  const splashPath = app.isPackaged ? path.join(process.resourcesPath, "index.html") : "index.html";
 
-  mainWindow.loadFile("index.html");
+  splash.loadFile(splashPath).catch((error) => {
+    handleCriticalError("Splash Screen Failed", error);
+  });
+
+  // Create main window with additional error handling
+  try {
+    mainWindow = new BrowserWindow({
+      width: 900,
+      height: 700,
+      minWidth: 500,
+      minHeight: 400,
+      show: false, // Hide until ready
+      webPreferences: {
+        preload: path.join(__dirname, "preload.js"),
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
+      },
+      backgroundColor: "#181a1b",
+    });
+
+    // Handle window ready-to-show
+    mainWindow.once("ready-to-show", () => {
+      splash.destroy();
+      mainWindow.show();
+    });
+
+    // Handle window creation failure
+    mainWindow.on("closed", () => {
+      dialog.showErrorBox("Window Closed", "Main window was closed unexpectedly");
+      app.quit();
+    });
+  } catch (error) {
+    splash.destroy();
+    handleCriticalError("Window Creation Failed", error);
+  }
+
+  // Handle production vs development paths for main window
+  const indexPath = app.isPackaged ? path.join(process.resourcesPath, "index.html") : "index.html";
+
+  mainWindow.loadFile(indexPath).catch((error) => {
+    handleCriticalError("Failed to Load Interface", error);
+  });
 
   // Handle file path from command line (first instance)
   const filePath = process.argv.find((arg) => arg.endsWith(".xlsx"));
@@ -57,23 +112,15 @@ app
         try {
           if (BrowserWindow.getAllWindows().length === 0) createWindow();
         } catch (error) {
-          logStream.write(`[${new Date().toISOString()}] Activate Error: ${error.stack}\n\n`);
-          dialog.showErrorBox("Window Error", "Failed to recreate window: " + error.message);
+          handleCriticalError("Window Activation Failed", error);
         }
       });
     } catch (error) {
-      logStream.write(`[${new Date().toISOString()}] Startup Error: ${error.stack}\n\n`);
-      dialog.showErrorBox("Critical Error", "Application failed to start: " + error.message);
-      app.quit();
+      handleCriticalError("Application Startup Failed", error);
     }
   })
   .catch((error) => {
-    logStream.write(`[${new Date().toISOString()}] App Ready Error: ${error.stack}\n\n`);
-    dialog.showErrorBox(
-      "Initialization Error",
-      "Failed to initialize application: " + error.message
-    );
-    app.quit();
+    handleCriticalError("App Initialization Failed", error);
   });
 
 // Handle file open from second instance (Windows)
@@ -88,9 +135,7 @@ app.on("second-instance", (event, argv) => {
       }
     }
   } catch (error) {
-    const errorTime = new Date().toISOString();
-    logStream.write(`[${errorTime}] File Open Error: ${error.stack}\n\n`);
-    dialog.showErrorBox("File Error", "Failed to handle file: " + error.message);
+    handleCriticalError("File Open Error", error);
   }
 });
 
