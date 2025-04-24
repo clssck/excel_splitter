@@ -46,14 +46,16 @@ jobs:
       - run: npm ci
       - run: npm install rimraf --save-dev
 
-      # Build Electron app
-      - name: Build Portable (Windows)
+      # Build Windows Installer (unsigned)
+      - name: Build Windows Installer
         if: matrix.os == 'windows-latest'
         env:
           DEBUG: "electron-builder"
         run: |
           npx rimraf dist
-          npx electron-builder build --win portable --x64
+          npx electron-builder build --win --x64 --config.forceCodeSigning=false
+          echo "Note: This is an unsigned build. To remove Windows warnings, see CONTRIBUTING.md for code signing instructions"
+          CSC_IDENTITY_AUTO_DISCOVERY=false
 
       - name: Build DMG (macOS)
         if: matrix.os == 'macos-latest'
@@ -100,6 +102,6 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: auto-release-${{ github.run_number }}
           name: "Automated Release ${{ github.run_number }}"
-          body: "This release was triggered automatically.\n\nIncluded assets:\n- Windows: .zip (extract and run the .exe inside)\n- macOS: .dmg\n\nTo trigger a release, push to main with a commit message containing [release], or use the Run workflow button in Actions."
+          body: "This release was triggered automatically.\n\nIncluded assets:\n- Windows: Setup.exe (unsigned - may show security warning)\n- macOS: .dmg\n\nTo trigger a release, push to main with a commit message containing [release], or use the Run workflow button in Actions.\n\nFor code signing instructions to remove Windows warnings, see CONTRIBUTING.md"
           draft: false
           prerelease: false

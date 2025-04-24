@@ -6,7 +6,11 @@
   "scripts": {
     "start": "electron .",
     "dev": "npm start",
-    "build": "electron-builder --config.nsis.artifactName=\"${productName}-Setup-${version}.${ext}\"",
+    "prebuild": "taskkill /f /im electron.exe /t || exit 0",
+    "clean": "rimraf dist",
+    "build": "electron-builder --windows",
+    "dist": "npm run clean && npm run build",
+    "postinstall": "electron-builder install-app-deps",
     "test": "echo \"No tests specified\" && exit 0"
   },
   "dependencies": {
@@ -17,26 +21,28 @@
     "electron": "^35.2.0",
     "electron-builder": "^26.0.12",
     "husky": "^9.1.7",
-    "lint-staged": "^15.5.1"
+    "lint-staged": "^15.5.1",
+    "rimraf": "^5.0.5"
   },
   "build": {
     "appId": "com.example.excelprojectbatchsplitter",
-    "productName": "Excel Project/Batch Splitter",
+    "productName": "ExcelProjectBatchSplitter",
+    "fileAssociations": [
+      {
+        "ext": "xlsx",
+        "name": "Excel File",
+        "role": "Editor"
+      }
+    ],
     "files": [
-      "**/*"
+      "**/*",
+      "!node_modules/{@types*,*.d.ts}"
     ],
     "directories": {
       "buildResources": "build"
     },
     "win": {
-      "target": [
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
+      "target": "nsis",
       "icon": "build/icon.ico"
     },
     "extraFiles": [
@@ -69,7 +75,9 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "${productName}-${version}-setup.${ext}",
+      "include": "installer.nsh"
     },
     "publish": null
   },
