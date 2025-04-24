@@ -5,13 +5,19 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dev": "npm start",
     "prebuild": "taskkill /f /im electron.exe /t || exit 0",
-    "clean": "rimraf dist",
-    "build": "electron-builder --windows",
-    "dist": "npm run clean && npm run build",
+    "clean": "rimraf dist out",
+    "build:win": "electron-builder --windows",
+    "build:mac": "electron-builder --mac",
+    "dist:win": "npm run clean && npm run build:win",
+    "dist:mac": "npm run clean && npm run build:mac",
+    "postdist:mac": "xattr -cr dist/mac-arm64/ExcelProjectBatchSplitter.app || echo 'Failed to run xattr. Run manually if needed: xattr -cr dist/mac-arm64/ExcelProjectBatchSplitter.app'",
+    "run:mac": "npm run dist:mac",
+    "run:win": "npm run dist:win",
     "postinstall": "electron-builder install-app-deps",
-    "test": "jest"
+    "test": "jest",
+    "check-updates": "npm outdated",
+    "lint": "eslint . --ext .js"
   },
   "dependencies": {
     "xlsx": "^0.18.5",
@@ -19,11 +25,11 @@
     "trash": "^9.0.0"
   },
   "devDependencies": {
-    "electron": "35.2.0",
+    "electron": "^35.2.1",
     "electron-builder": "26.0.12",
     "husky": "^9.0.11",
     "lint-staged": "^15.2.2",
-    "rimraf": "^5.0.5",
+    "rimraf": "^6.0.1",
     "jest": "^29.7.0"
   },
   "build": {
@@ -37,33 +43,19 @@
       }
     ],
     "directories": {
+      "output": "dist",
       "buildResources": "build"
     },
     "win": {
       "target": "nsis",
       "icon": "build/icon.ico"
     },
-    "extraFiles": [
-      {
-        "from": "node_modules/electron/dist/ffmpeg.dll",
-        "to": "ffmpeg.dll"
-      },
-      {
-        "from": "node_modules/electron/dist/icudtl.dat",
-        "to": "icudtl.dat"
-      }
-    ],
     "mac": {
       "target": [
         "dmg"
       ],
       "icon": "build/icon.icns",
-      "extraFiles": [
-        {
-          "from": "node_modules/electron/dist/icudtl.dat",
-          "to": "icudtl.dat"
-        }
-      ]
+      "category": "public.app-category.utilities"
     },
     "linux": {
       "target": [

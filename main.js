@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 let mainWindow; // Track main window globally
 const fs = require("fs");
 const path = require("path");
+const { createMenu } = require("./menu"); // Import the menu creation function
 
 // Configure error logging
 const logStream = fs.createWriteStream(
@@ -49,7 +50,7 @@ function createWindow() {
     backgroundColor: "#181a1b",
   });
   // Load splash screen with production path handling
-  const splashPath = app.isPackaged ? path.join(process.resourcesPath, "index.html") : "index.html";
+  const splashPath = path.join(__dirname, "index.html");
 
   splash.loadFile(splashPath).catch((error) => {
     handleCriticalError("Splash Screen Failed", error);
@@ -77,19 +78,13 @@ function createWindow() {
       splash.destroy();
       mainWindow.show();
     });
-
-    // Handle window creation failure
-    mainWindow.on("closed", () => {
-      dialog.showErrorBox("Window Closed", "Main window was closed unexpectedly");
-      app.quit();
-    });
   } catch (error) {
     splash.destroy();
     handleCriticalError("Window Creation Failed", error);
   }
 
   // Handle production vs development paths for main window
-  const indexPath = app.isPackaged ? path.join(process.resourcesPath, "index.html") : "index.html";
+  const indexPath = path.join(__dirname, "index.html");
 
   mainWindow.loadFile(indexPath).catch((error) => {
     handleCriticalError("Failed to Load Interface", error);
@@ -107,6 +102,7 @@ app
   .then(() => {
     try {
       createWindow();
+      createMenu(mainWindow); // Create and set the application menu
 
       app.on("activate", function () {
         try {
