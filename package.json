@@ -43,13 +43,23 @@
       {
         "from": "node_modules/electron/dist/ffmpeg.dll",
         "to": "ffmpeg.dll"
+      },
+      {
+        "from": "node_modules/electron/dist/icudtl.dat",
+        "to": "icudtl.dat"
       }
     ],
     "mac": {
       "target": [
         "dmg"
       ],
-      "icon": "build/icon.icns"
+      "icon": "build/icon.icns",
+      "extraFiles": [
+        {
+          "from": "node_modules/electron/dist/icudtl.dat",
+          "to": "icudtl.dat"
+        }
+      ]
     },
     "linux": {
       "target": [
