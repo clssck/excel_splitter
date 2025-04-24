@@ -9,8 +9,3 @@
 Section -RegisterExtensions
   !insertmacro registerExtensions
 SectionEnd
-
-Section un.RegisterExtensions
-  DeleteRegKey HKCR ".xlsx"
-  DeleteRegKey HKCR "ExcelProjectBatchSplitter.xlsx"
-SectionEnd
