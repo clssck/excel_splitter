@@ -1,7 +1,7 @@
-const fs = require("fs");
-const path = require("path");
-const xlsx = require("xlsx");
-const ExcelJS = require("exceljs");
+import fs from "fs";
+import path from "path";
+import xlsx from "xlsx";
+import ExcelJS from "exceljs";
 
 /**
  * Splits the Excel file by 'project_code' and then by 'batch_code'.
@@ -10,7 +10,7 @@ const ExcelJS = require("exceljs");
  * @param {string} inputPath - Path to the input Excel file.
  * @param {string} outputDir - Path to the output directory.
  */
-module.exports = async function splitExcel(inputPath, outputDir) {
+export default async function splitExcel(inputPath, outputDir) {
   if (!fs.existsSync(inputPath)) {
     throw new Error("Input file does not exist.");
   }
@@ -24,12 +24,41 @@ module.exports = async function splitExcel(inputPath, outputDir) {
   const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
   if (!data.length) {
+    // First try to get headers from the sheet
+    let headers = [];
+    try {
+      // Try getting headers from the first row of data if available
+      const firstRow = workbook.Sheets[sheetName]["!ref"]
+        ? xlsx.utils.decode_range(workbook.Sheets[sheetName]["!ref"])
+        : null;
+      if (firstRow) {
+        for (let c = firstRow.s.c; c <= firstRow.e.c; c++) {
+          const cell = xlsx.utils.encode_cell({ r: 0, c });
+          if (workbook.Sheets[sheetName][cell]) {
+            headers.push(workbook.Sheets[sheetName][cell].v);
+          }
+        }
+      }
+
+      // If no headers found, try sheet_to_json with header:1
+      if (!headers.length) {
+        const rawRows = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
+        headers = Array.isArray(rawRows[0]) ? rawRows[0] : rawRows[0] ? [rawRows[0]] : [];
+      }
+    } catch {
+      // If any error occurs, treat as empty/invalid
+      throw new Error("Input Excel file is empty or invalid.");
+    }
+
+    if (headers.length) {
+      if (!headers.includes("project_code") || !headers.includes("batch_code")) {
+        throw new Error("Input file must contain 'project_code' and 'batch_code' columns.");
+      }
+    }
     throw new Error("Input Excel file is empty or invalid.");
   }
   if (!("project_code" in data[0]) || !("batch_code" in data[0])) {
-    throw new Error(
-      "Input file must contain 'project_code' and 'batch_code' columns."
-    );
+    throw new Error("Input file must contain 'project_code' and 'batch_code' columns.");
   }
 
   // Group by project_code
@@ -45,8 +74,7 @@ module.exports = async function splitExcel(inputPath, outputDir) {
   // Write files using exceljs for table formatting
   for (const [project, batches] of Object.entries(projects)) {
     const projectDir = path.join(outputDir, String(project));
-    if (!fs.existsSync(projectDir))
-      fs.mkdirSync(projectDir, { recursive: true });
+    if (!fs.existsSync(projectDir)) fs.mkdirSync(projectDir, { recursive: true });
 
     for (const [batch, rows] of Object.entries(batches)) {
       const outPath = path.join(projectDir, `${batch}.xlsx`);
@@ -86,4 +114,4 @@ module.exports = async function splitExcel(inputPath, outputDir) {
       await workbook.xlsx.writeFile(outPath);
     }
   }
-};
+}

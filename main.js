@@ -1,8 +1,8 @@
-const { app, BrowserWindow, ipcMain, dialog } = require("electron");
+import { app, BrowserWindow, ipcMain, dialog } from "electron";
+import fs from "fs";
+import path from "path";
+import { createMenu } from "./menu.js"; // Import the menu creation function
 let mainWindow; // Track main window globally
-const fs = require("fs");
-const path = require("path");
-const { createMenu } = require("./menu"); // Import the menu creation function
 
 // Configure error logging
 const logStream = fs.createWriteStream(
@@ -32,7 +32,7 @@ function handleCriticalError(title, error) {
 process.on("uncaughtException", (error) => {
   handleCriticalError("Uncaught Exception", error);
 });
-const splitExcel = require("./splitExcel");
+import splitExcel from "./splitExcel.js";
 
 function handleFile(filePath) {
   if (mainWindow) {

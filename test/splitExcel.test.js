@@ -1,8 +1,9 @@
-const splitExcel = require("../splitExcel");
-const fs = require("fs");
-const path = require("path");
-const os = require("os");
-const ExcelJS = require("exceljs"); // To read output files
+import splitExcel from "../splitExcel.js";
+import fs from "fs";
+import path from "path";
+import os from "os";
+import ExcelJS from "exceljs"; // To read output files
+import xlsx from "xlsx"; // For test fixture creation
 
 // Helper function to read an Excel file and return rows as JSON
 async function readExcelData(filePath) {
@@ -147,16 +148,33 @@ describe("splitExcel", () => {
   });
 
   test("should throw error if required columns are missing", async () => {
-    // You need to create test/fixtures/missing_columns.xlsx (missing project_code or batch_code)
     const missingColsFilePath = path.join(fixturesDir, "missing_columns.xlsx");
-    // Create a dummy file if it doesn't exist
-    if (!fs.existsSync(missingColsFilePath)) {
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet("Sheet1");
-      worksheet.addRow(["project_code", "Value"]); // Missing batch_code
-      worksheet.addRow(["P1", 100]);
-      await workbook.xlsx.writeFile(missingColsFilePath);
+    // Create test fixture using xlsx for compatibility
+    // Ensure fresh test file
+    if (fs.existsSync(missingColsFilePath)) {
+      fs.unlinkSync(missingColsFilePath);
     }
+
+    const workbook = xlsx.utils.book_new();
+    const worksheet = xlsx.utils.aoa_to_sheet([
+      ["project_code", "Value"], // Missing batch_code
+      ["P1", 100],
+    ]);
+    xlsx.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+    xlsx.writeFile(workbook, missingColsFilePath);
+
+    // Verify file was created with correct content
+    if (!fs.existsSync(missingColsFilePath)) {
+      throw new Error("Failed to create test fixture");
+    }
+    const fixtureWorkbook = xlsx.readFile(missingColsFilePath);
+    const fixtureSheet = fixtureWorkbook.Sheets[fixtureWorkbook.SheetNames[0]];
+    const fixtureData = xlsx.utils.sheet_to_json(fixtureSheet, { header: 1 });
+    if (fixtureData.length < 2 || !fixtureData[0].includes("project_code")) {
+      throw new Error("Test fixture content is invalid");
+    }
+
+    // Verification already done above (lines 170-175)
     await expect(splitExcel(missingColsFilePath, tempOutputDir)).rejects.toThrow(
       "Input file must contain 'project_code' and 'batch_code' columns."
     );

@@ -1,4 +1,5 @@
 {
+  "type": "module",
   "name": "excel-project-batch-splitter",
   "version": "1.0.0",
   "description": "Electron app to split Excel files by project_code and batch_code with GUI file/directory selection.",

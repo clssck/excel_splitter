@@ -1,7 +1,8 @@
-module.exports = {
+export default {
   testEnvironment: "node",
-  testMatch: ["**/test/**/*.test.js"],
-  collectCoverage: true,
-  coverageDirectory: "coverage",
-  collectCoverageFrom: ["splitExcel.js"],
+  transform: {},
+  extensionsToTreatAsEsm: [".js"],
+  moduleNameMapper: {
+    "^(\\.{1,2}/.*)\\.js$": "$1",
+  },
 };
