@@ -137,5 +137,6 @@ dist
 
 
 *.xlsx
+!test/fixtures/*.xlsx
 build/lab-vial-excel.svg
 .DS_Store
