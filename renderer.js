@@ -1,4 +1,13 @@
 window.addEventListener("DOMContentLoaded", () => {
+  // --- Test contextBridge ---
+  console.log("Testing electronAPI object:", window.electronAPI);
+  try {
+    console.log("Calling testPing:", window.electronAPI.testPing());
+  } catch (err) {
+    console.error("Error calling testPing:", err);
+  }
+  // --- End Test ---
+
   const inputFile = document.getElementById("inputFile");
   const outputDir = document.getElementById("outputDir");
   const browseInput = document.getElementById("browseInput");
@@ -7,21 +16,47 @@ window.addEventListener("DOMContentLoaded", () => {
   const statusDiv = document.getElementById("status");
   const errorDiv = document.getElementById("error");
 
+  let isDialogOpen = false; // Flag to prevent multiple dialogs
+
+  // Handle progress updates from main process
+  // Temporarily commented out for debugging
+  // window.electronAPI.onProgressUpdate((progress) => {
+  //   statusDiv.textContent = `Processing... ${progress}%`;
+  // });
+
   browseInput.addEventListener("click", async () => {
-    const filePath = await window.electronAPI.selectExcelFile();
-    if (filePath) {
-      inputFile.value = filePath;
-      statusDiv.textContent = "";
-      errorDiv.textContent = "";
+    if (isDialogOpen) return; // Prevent opening multiple dialogs
+    isDialogOpen = true;
+    try {
+      const filePath = await window.electronAPI.selectExcelFile();
+      if (filePath) {
+        inputFile.value = filePath;
+        statusDiv.textContent = "";
+        errorDiv.textContent = "";
+      }
+    } catch (err) {
+      console.error("Error selecting input file:", err);
+      errorDiv.textContent = "Failed to open file dialog.";
+    } finally {
+      isDialogOpen = false; // Reset flag
     }
   });
 
   browseOutput.addEventListener("click", async () => {
-    const dirPath = await window.electronAPI.selectOutputDir();
-    if (dirPath) {
-      outputDir.value = dirPath;
-      statusDiv.textContent = "";
-      errorDiv.textContent = "";
+    if (isDialogOpen) return; // Prevent opening multiple dialogs
+    isDialogOpen = true;
+    try {
+      const dirPath = await window.electronAPI.selectOutputDir();
+      if (dirPath) {
+        outputDir.value = dirPath;
+        statusDiv.textContent = "";
+        errorDiv.textContent = "";
+      }
+    } catch (err) {
+      console.error("Error selecting output directory:", err);
+      errorDiv.textContent = "Failed to open directory dialog.";
+    } finally {
+      isDialogOpen = false; // Reset flag
     }
   });
 
@@ -38,16 +73,37 @@ window.addEventListener("DOMContentLoaded", () => {
       errorDiv.textContent = "Please select an output directory.";
       return;
     }
-    statusDiv.textContent = "Processing...";
+
+    // Disable button and show initial status
+    splitBtn.disabled = true;
+    splitBtn.textContent = "Splitting..."; // Optional: Change button text
+    statusDiv.textContent = "Processing... 0%";
+
     try {
       const result = await window.electronAPI.splitExcel(inputPath, outDir);
       if (result.success) {
         statusDiv.textContent = "Files split and saved successfully.";
       } else {
+        // Keep progress message if splitting finished but had an error reported
         errorDiv.textContent = result.error || "An error occurred during splitting.";
+        if (!statusDiv.textContent.includes("Processing")) {
+          statusDiv.textContent = ""; // Clear status only if it wasn't showing progress
+        }
       }
     } catch (err) {
+      // Handle errors from the invoke call itself (e.g., main process crash)
       errorDiv.textContent = err.message || String(err);
+      statusDiv.textContent = ""; // Clear status on invoke error
+    } finally {
+      // Re-enable button regardless of success or failure
+      splitBtn.disabled = false;
+      splitBtn.textContent = "Split File"; // Restore original text
+      // Optional: Clear progress text a bit later or on next action
+      // setTimeout(() => {
+      //   if (statusDiv.textContent.includes("Processing")) {
+      //     statusDiv.textContent = "";
+      //   }
+      // }, 5000); // Clear after 5 seconds if still showing progress
     }
   });
 });

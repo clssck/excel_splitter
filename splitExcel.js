@@ -1,7 +1,7 @@
+import ExcelJS from "exceljs";
 import fs from "fs";
 import path from "path";
 import xlsx from "xlsx";
-import ExcelJS from "exceljs";
 
 /**
  * Splits the Excel file by 'project_code' and then by 'batch_code'.
@@ -9,8 +9,9 @@ import ExcelJS from "exceljs";
  * Each output file's sheet is formatted as an Excel table with headers and a style.
  * @param {string} inputPath - Path to the input Excel file.
  * @param {string} outputDir - Path to the output directory.
+ * @param {Electron.WebContents} [sender] - Optional sender object for IPC progress updates.
  */
-export default async function splitExcel(inputPath, outputDir) {
+export default async function splitExcel(inputPath, outputDir, sender) {
   if (!fs.existsSync(inputPath)) {
     throw new Error("Input file does not exist.");
   }
@@ -18,10 +19,23 @@ export default async function splitExcel(inputPath, outputDir) {
     throw new Error("Output directory does not exist.");
   }
 
-  // Read input using xlsx for compatibility
-  const workbook = xlsx.readFile(inputPath);
-  const sheetName = workbook.SheetNames[0];
-  const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+  let workbook;
+  let sheetName;
+  let data;
+
+  try {
+    // Read input using fs.readFileSync and xlsx.read
+    const buffer = fs.readFileSync(inputPath);
+    workbook = xlsx.read(buffer, { type: "buffer" });
+    sheetName = workbook.SheetNames[0];
+    data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+  } catch (err) {
+    // Handle errors during file reading or initial parsing
+    console.error(`Error reading or parsing input file: ${inputPath}`, err);
+    throw new Error(
+      "Failed to read or parse input Excel file. It might be corrupted or an invalid format."
+    );
+  }
 
   if (!data.length) {
     // First try to get headers from the sheet
@@ -72,6 +86,10 @@ export default async function splitExcel(inputPath, outputDir) {
   }
 
   // Write files using exceljs for table formatting
+  const projectKeys = Object.keys(projects);
+  const totalProjects = projectKeys.length;
+  let processedProjects = 0;
+
   for (const [project, batches] of Object.entries(projects)) {
     const projectDir = path.join(outputDir, String(project));
     if (!fs.existsSync(projectDir)) fs.mkdirSync(projectDir, { recursive: true });
@@ -112,6 +130,13 @@ export default async function splitExcel(inputPath, outputDir) {
       });
 
       await workbook.xlsx.writeFile(outPath);
+
+      // Send progress update
+      processedProjects++;
+      if (sender) {
+        const progress = Math.round((processedProjects / totalProjects) * 100);
+        sender.send("progress-update", progress); // Use 'progress-update' channel
+      }
     }
   }
 }

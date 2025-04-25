@@ -1,9 +1,12 @@
-import splitExcel from "../splitExcel.js";
-import fs from "fs";
-import path from "path";
-import os from "os";
 import ExcelJS from "exceljs"; // To read output files
-import xlsx from "xlsx"; // For test fixture creation
+import fs from "fs";
+import os from "os";
+import path, { dirname } from "path";
+import { fileURLToPath } from "url";
+import splitExcel from "../splitExcel.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Helper function to read an Excel file and return rows as JSON
 async function readExcelData(filePath) {
@@ -136,11 +139,10 @@ describe("splitExcel", () => {
   });
 
   test("should throw error if input file is empty", async () => {
-    // You need to create test/fixtures/empty.xlsx (can be truly empty or just header)
     const emptyFilePath = path.join(fixturesDir, "empty.xlsx");
-    // Ensure the dummy file exists for the test setup
+    // Ensure the manually created file exists
     if (!fs.existsSync(emptyFilePath)) {
-      fs.writeFileSync(emptyFilePath, ""); // Create an empty file if it doesn't exist
+      throw new Error("Manual fixture empty.xlsx not found!");
     }
     await expect(splitExcel(emptyFilePath, tempOutputDir)).rejects.toThrow(
       "Input Excel file is empty or invalid."
@@ -149,32 +151,11 @@ describe("splitExcel", () => {
 
   test("should throw error if required columns are missing", async () => {
     const missingColsFilePath = path.join(fixturesDir, "missing_columns.xlsx");
-    // Create test fixture using xlsx for compatibility
-    // Ensure fresh test file
-    if (fs.existsSync(missingColsFilePath)) {
-      fs.unlinkSync(missingColsFilePath);
-    }
-
-    const workbook = xlsx.utils.book_new();
-    const worksheet = xlsx.utils.aoa_to_sheet([
-      ["project_code", "Value"], // Missing batch_code
-      ["P1", 100],
-    ]);
-    xlsx.utils.book_append_sheet(workbook, worksheet, "Sheet1");
-    xlsx.writeFile(workbook, missingColsFilePath);
-
-    // Verify file was created with correct content
+    // Ensure the manually created file exists
     if (!fs.existsSync(missingColsFilePath)) {
-      throw new Error("Failed to create test fixture");
+      throw new Error("Manual fixture missing_columns.xlsx not found!");
     }
-    const fixtureWorkbook = xlsx.readFile(missingColsFilePath);
-    const fixtureSheet = fixtureWorkbook.Sheets[fixtureWorkbook.SheetNames[0]];
-    const fixtureData = xlsx.utils.sheet_to_json(fixtureSheet, { header: 1 });
-    if (fixtureData.length < 2 || !fixtureData[0].includes("project_code")) {
-      throw new Error("Test fixture content is invalid");
-    }
-
-    // Verification already done above (lines 170-175)
+    // No need to create the file here anymore, it's manual
     await expect(splitExcel(missingColsFilePath, tempOutputDir)).rejects.toThrow(
       "Input file must contain 'project_code' and 'batch_code' columns."
     );

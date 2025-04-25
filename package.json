@@ -16,23 +16,23 @@
     "run:mac": "npm run dist:mac",
     "run:win": "npm run dist:win",
     "postinstall": "electron-builder install-app-deps",
-    "test": "jest",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "check-updates": "npm outdated",
     "lint": "npx eslint . --ext .js"
   },
   "dependencies": {
-    "xlsx": "^0.18.5",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "exceljs": "^4.4.0",
     "trash": "^9.0.0"
   },
   "devDependencies": {
     "electron": "^35.2.1",
     "electron-builder": "26.0.12",
-    "husky": "^9.0.11",
-    "lint-staged": "^15.2.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.1",
     "rimraf": "^6.0.1",
     "jest": "^29.7.0",
-    "@eslint/js": "^8.0.0",
+    "eslint": "^9.25.1",
     "globals": "^16.0.0"
   },
   "build": {

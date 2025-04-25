@@ -1,7 +1,13 @@
-import { app, BrowserWindow, ipcMain, dialog } from "electron";
+import { app, BrowserWindow, dialog, ipcMain } from "electron";
 import fs from "fs";
-import path from "path";
+import path, { dirname } from "path";
+import { fileURLToPath } from "url"; // Import necessary modules
 import { createMenu } from "./menu.js"; // Import the menu creation function
+import splitExcel from "./splitExcel.js";
+
+const __filename = fileURLToPath(import.meta.url); // Define __filename for ESM
+const __dirname = dirname(__filename); // Define __dirname for ESM
+
 let mainWindow; // Track main window globally
 
 // Configure error logging
@@ -32,7 +38,6 @@ function handleCriticalError(title, error) {
 process.on("uncaughtException", (error) => {
   handleCriticalError("Uncaught Exception", error);
 });
-import splitExcel from "./splitExcel.js";
 
 function handleFile(filePath) {
   if (mainWindow) {
@@ -160,7 +165,8 @@ ipcMain.handle("select-output-dir", async () => {
 // IPC handler to run the split logic
 ipcMain.handle("split-excel", async (event, { inputPath, outputDir }) => {
   try {
-    await splitExcel(inputPath, outputDir);
+    // Pass event.sender to splitExcel for progress reporting
+    await splitExcel(inputPath, outputDir, event.sender);
     return { success: true };
   } catch (error) {
     const errorTime = new Date().toISOString();
