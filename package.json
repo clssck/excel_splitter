@@ -51,7 +51,7 @@
     },
     "win": {
       "target": "nsis",
-      "icon": "build/icon.ico"
+      "icon": "build/splitter_sprite.png"
     },
     "mac": {
       "target": [
@@ -64,7 +64,7 @@
       "target": [
         "AppImage"
       ],
-      "icon": "build/icon.png"
+      "icon": "build/splitter_sprite.png"
     },
     "nsis": {
       "oneClick": false,

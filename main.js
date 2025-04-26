@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, nativeImage } from "electron";
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url"; // Import necessary modules
@@ -7,6 +7,15 @@ import splitExcel from "./splitExcel.js";
 
 const __filename = fileURLToPath(import.meta.url); // Define __filename for ESM
 const __dirname = dirname(__filename); // Define __dirname for ESM
+
+// Create native image for the icon
+const iconPath = path.join(__dirname, "build", "splitter_sprite.png");
+console.log("Attempting to load icon from:", iconPath); // Log the path
+const appIcon = nativeImage.createFromPath(iconPath);
+
+if (appIcon.isEmpty()) {
+  console.error("Error: Could not create nativeImage from path. Check file existence and format.");
+}
 
 let mainWindow; // Track main window globally
 
@@ -69,6 +78,7 @@ function createWindow() {
       minWidth: 500,
       minHeight: 400,
       show: false, // Hide until ready
+      icon: appIcon,
       webPreferences: {
         preload: path.join(__dirname, "preload.js"),
         contextIsolation: true,
@@ -108,6 +118,14 @@ app
     try {
       createWindow();
       createMenu(mainWindow); // Create and set the application menu
+
+      // Explicitly set Dock icon on macOS
+      if (process.platform === "darwin" && !appIcon.isEmpty()) {
+        app.dock.setIcon(appIcon);
+        console.log("Attempted to set Dock icon.");
+      } else if (process.platform === "darwin") {
+        console.warn("Could not set Dock icon because appIcon was empty.");
+      }
 
       app.on("activate", function () {
         try {
