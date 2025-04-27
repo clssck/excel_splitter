@@ -2,7 +2,7 @@
 
 [![Build Status](https://github.com/clssck/excel_splitter/actions/workflows/node.js.yml/badge.svg)](https://github.com/clssck/excel_splitter/actions)
 [![Coverage Status](https://img.shields.io/badge/coverage-passing-brightgreen)](#)
-[![Platforms](https://img.shields.io/badge/platform-win%20%7C%20mac%20%7C%20linux-blue)](#)
+[![Platforms](https://img.shields.io/badge/platform-win%20%7C%20mac-blue)](#)
 
 > Effortlessly split Excel files by project and batch code with a simple, cross-platform desktop app.
 
@@ -16,6 +16,7 @@
 - [Technical Requirements](#technical-requirements)
 - [Contributing](#contributing)
 - [Troubleshooting](#troubleshooting)
+- [Release Notes](#release-notes)
 - [License](#license)
 - [Roadmap](#roadmap)
 
@@ -25,7 +26,7 @@
 
 - Split Excel files by `project_code` and `batch_code`
 - User-friendly GUI for file and directory selection
-- Cross-platform: Windows, macOS, and Linux installers
+- Cross-platform: Windows and macOS installers
 - Handles large files efficiently
 - Automated builds and releases via GitHub Actions
 
@@ -35,11 +36,12 @@
 
 ### Download
 
-Go to the [Releases](https://github.com/clssck/excel_splitter/releases) page and download the latest installer for your platform:
+Go to the [Releases](https://github.com/clssck/excel_splitter/releases) page and download the latest installer for your platform.
+
+See [RELEASE_NOTES.md](./RELEASE_NOTES.md) for details about the current version.
 
 - Windows: `.zip` (extract and run the `.exe` inside)
 - macOS: `.dmg`
-- Linux: `.AppImage`
 
 ### Install & Run
 
@@ -59,7 +61,7 @@ Go to the [Releases](https://github.com/clssck/excel_splitter/releases) page and
 
 ## Technical Requirements
 
-- Windows 10+, macOS 12+, or modern Linux distribution
+- Windows 10+ or macOS 12+
 - No need for Microsoft Excel to be installed
 
 ---
@@ -88,6 +90,12 @@ Contributions are welcome! Please:
 ## License
 
 MIT
+
+---
+
+## Release Notes
+
+See [RELEASE_NOTES.md](./RELEASE_NOTES.md) for a summary of features, changes, and known issues in each release.
 
 ---
 

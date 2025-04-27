@@ -2,18 +2,21 @@ name: Node.js CI
 
 on:
   push:
-    branches: ["main"]
+    branches: ["master, main"]
+  # Trigger on push to master or main branch
+  # Only trigger on commit messages containing [release] for release job
+  # This is handled in the release job condition
   pull_request:
-    branches: ["main"]
+    branches: ["master, main"]
+  # Trigger on pull requests to master or main branch
   workflow_dispatch: # Allow manual triggering from GitHub Actions UI
-  # Trigger release workflow on new tags
-  # Note: This release trigger seems incorrect, release creation doesn't trigger like this.
-  # Keeping the [release] commit message trigger and workflow_dispatch for the release job.
-  # release:
-  #   types: [created]
 
 permissions:
-  contents: write # Needed for the release job to create releases
+  contents: write # Needed for release creation
+  # Default permissions for GITHUB_TOKEN
+  actions: read
+  checks: write
+  security-events: write
 
 jobs:
   build:
@@ -22,6 +25,8 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, macos-latest]
+        # Continue all builds even if one fails
+        fail-fast: false
         node-version: ["22.x"] # Using Node 22 from original file
 
     steps:
@@ -35,11 +40,13 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: "npm"
 
-      # Optional: Cache Electron binaries for faster builds
-      - name: Cache Electron binaries
+      # Cache Electron and builder binaries
+      - name: Cache Electron
         uses: actions/cache@v4
         with:
           path: |
+            ~\AppData\Local\electron
+            ~\AppData\Local\electron-builder
             ~/.cache/electron
             ~/.cache/electron-builder
           key: ${{ runner.os }}-electron-${{ hashFiles('package-lock.json') }}
@@ -52,12 +59,17 @@ jobs:
       - name: Lint Check
         run: npm run lint
 
+      # Run tests before building
+      - name: Run Tests
+        run: npm test
+
       # Install NSIS on Windows for electron-builder
       - name: Install NSIS
         if: matrix.os == 'windows-latest'
         run: |
-          choco install nsis --no-progress --accept-license --force
-          echo "C:\ProgramData\chocolatey\bin" >> $env:GITHUB_PATH
+          choco install nsis --version 3.08 --no-progress --accept-license --force
+          echo "C:\Program Files (x86)\NSIS" >> $env:GITHUB_PATH
+          echo "ELECTRON_BUILDER_NSIS_PATH=C:\Program Files (x86)\NSIS" >> $env:GITHUB_ENV
 
       # Build Windows Installer (unsigned) using npm script
       - name: Build Windows Installer
@@ -86,9 +98,6 @@ jobs:
             dist/**/*.exe
             dist/**/*.dmg
           if-no-files-found: error # Keep error check
-
-      # Run tests
-      - run: npm test
 
   release:
     name: Release
