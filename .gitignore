@@ -140,3 +140,5 @@ dist
 !test/fixtures/*.xlsx
 build/lab-vial-excel.svg
 .DS_Store
+/.roo
+.roomodes
