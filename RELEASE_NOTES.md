@@ -22,7 +22,6 @@ Download the latest installer for your platform from the [Releases](https://gith
 
 - **Windows:** `.zip` archive (extract and run the `.exe`)
 - **macOS:** `.dmg` installer
-- **Linux:** `.AppImage` file
 
 ---
 
