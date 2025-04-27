@@ -7,6 +7,8 @@
   "scripts": {
     "start": "electron .",
     "prebuild": "taskkill /f /im electron.exe /t || exit 0",
+    "preclean": "taskkill /IM ExcelProjectBatchSplitter.exe /F >nul 2>&1 & taskkill /IM electron.exe /F >nul 2>&1 & taskkill /IM node.exe /F >nul 2>&1 && timeout /t 2 /nobreak >nul",
+    "postclean": "taskkill /IM ExcelProjectBatchSplitter.exe /F >nul 2>&1 && timeout /t 5 /nobreak || ver > nul",
     "clean": "rimraf dist out",
     "build:win": "electron-builder --windows",
     "build:mac": "electron-builder --mac",

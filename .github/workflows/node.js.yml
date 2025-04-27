@@ -35,11 +35,13 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: "npm"
 
-      # Optional: Cache Electron binaries for faster builds
-      - name: Cache Electron binaries
+      # Cache Electron and builder binaries
+      - name: Cache Electron
         uses: actions/cache@v4
         with:
           path: |
+            ~\AppData\Local\electron
+            ~\AppData\Local\electron-builder
             ~/.cache/electron
             ~/.cache/electron-builder
           key: ${{ runner.os }}-electron-${{ hashFiles('package-lock.json') }}
@@ -56,8 +58,9 @@ jobs:
       - name: Install NSIS
         if: matrix.os == 'windows-latest'
         run: |
-          choco install nsis --no-progress --accept-license --force
-          echo "C:\ProgramData\chocolatey\bin" >> $env:GITHUB_PATH
+          choco install nsis --version 3.08 --no-progress --accept-license --force
+          echo "C:\Program Files (x86)\NSIS" >> $env:GITHUB_PATH
+          echo "ELECTRON_BUILDER_NSIS_PATH=C:\Program Files (x86)\NSIS" >> $env:GITHUB_ENV
 
       # Build Windows Installer (unsigned) using npm script
       - name: Build Windows Installer

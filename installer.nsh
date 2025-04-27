@@ -1,22 +1,50 @@
-!macro registerExtensions
-  ; The following lines were causing all .xlsx files to be associated with this app,
-  ; overriding the default Excel association. They are now commented out to prevent hijacking.
-  ; DeleteRegKey HKCR ".xlsx"
-  ; WriteRegStr HKCR ".xlsx" "" "ExcelProjectBatchSplitter.xlsx"
-  ; WriteRegStr HKCR "ExcelProjectBatchSplitter.xlsx" "" "Excel File"
-  ; WriteRegStr HKCR "ExcelProjectBatchSplitter.xlsx\DefaultIcon" "" "$INSTDIR\resources\app.ico"
-  ; WriteRegStr HKCR "ExcelProjectBatchSplitter.xlsx\shell\open\command" "" "$INSTDIR\${APP_FILENAME} %1"
+!include "LogicLib.nsh"
+!include "MUI2.nsh"
+
+;--------------------------------
+; Installation Section
+;--------------------------------
+!include "x64.nsh"
+!include "WinVer.nsh"
+
+!macro customInstall
+  Section "Custom Install"
+    ${DisableX64FSRedirection}
+
+    ${If} ${RunningX64}
+      SetRegView 64
+    ${Else}
+      SetRegView 32
+    ${EndIf}
+
+    WriteRegStr HKCR "SystemFileAssociations\.xlsx\shell\Split with ExcelProjectBatchSplitter" "" "Split with ExcelProjectBatchSplitter"
+    WriteRegStr HKCR "SystemFileAssociations\.xlsx\shell\Split with ExcelProjectBatchSplitter\command" "" '"$INSTDIR\${APP_FILENAME}" "%1"'
+
+    ${If} ${AtLeastWinVista}
+      System::Call 'Shell32::SHChangeNotify(i 0x8000000, i 0, i 0, i 0)'
+    ${EndIf}
+
+    ${EnableX64FSRedirection}
+    SectionEnd
 !macroend
 
-; Add context menu entry for .xlsx files to allow splitting via right-click
-WriteRegStr HKCR "ExcelProjectBatchSplitter.xlsx" "" "Excel File"
-WriteRegStr HKCR "ExcelProjectBatchSplitter.xlsx\\DefaultIcon" "" "$INSTDIR\\resources\\app.ico"
-WriteRegStr HKCR "ExcelProjectBatchSplitter.xlsx\\shell\\split\\command" "" "$INSTDIR\\${APP_FILENAME} %1"
-WriteRegStr HKCR "ExcelProjectBatchSplitter.xlsx\\shell\\split" "" "Split with ExcelProjectBatchSplitter"
+!macro customUnInstall
+  ${DisableX64FSRedirection}
 
-; Add context menu for .xlsx files (without changing default)
-WriteRegStr HKCR "SystemFileAssociations\\.xlsx\\shell\\Split with ExcelProjectBatchSplitter\\command" "" "$INSTDIR\\${APP_FILENAME} %1"
-WriteRegStr HKCR "SystemFileAssociations\\.xlsx\\shell\\Split with ExcelProjectBatchSplitter" "" "Split with ExcelProjectBatchSplitter"
-Section -RegisterExtensions
-  !insertmacro registerExtensions
-SectionEnd
+  DeleteRegKey HKCR "SystemFileAssociations\.xlsx\shell\Split with ExcelProjectBatchSplitter"
+
+  ${If} ${AtLeastWinVista}
+    System::Call 'Shell32::SHChangeNotify(i 0x8000000, i 0, i 0, i 0)'
+  ${EndIf}
+
+  ${EnableX64FSRedirection}
+!macroend
+
+;--------------------------------
+; Installer Attributes
+;--------------------------------
+!define APP_FILENAME "ExcelProjectBatchSplitter.exe" ; Define the application executable name
+Name "ExcelProjectBatchSplitter"
+OutFile "Setup.exe"
+InstallDir "$PROGRAMFILES\ExcelProjectBatchSplitter"
+RequestExecutionLevel admin
