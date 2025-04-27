@@ -2,18 +2,17 @@ name: Node.js CI
 
 on:
   push:
-    branches: ["main"]
+    branches: ["master"]
   pull_request:
-    branches: ["main"]
+    branches: ["master"]
   workflow_dispatch: # Allow manual triggering from GitHub Actions UI
-  # Trigger release workflow on new tags
-  # Note: This release trigger seems incorrect, release creation doesn't trigger like this.
-  # Keeping the [release] commit message trigger and workflow_dispatch for the release job.
-  # release:
-  #   types: [created]
 
 permissions:
-  contents: write # Needed for the release job to create releases
+  contents: write # Needed for release creation
+  # Default permissions for GITHUB_TOKEN
+  actions: read
+  checks: write
+  security-events: write
 
 jobs:
   build:
@@ -22,6 +21,8 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, macos-latest]
+        # Continue all builds even if one fails
+        fail-fast: false
         node-version: ["22.x"] # Using Node 22 from original file
 
     steps:
@@ -53,6 +54,10 @@ jobs:
       # Run Linter
       - name: Lint Check
         run: npm run lint
+
+      # Run tests before building
+      - name: Run Tests
+        run: npm test
 
       # Install NSIS on Windows for electron-builder
       - name: Install NSIS
@@ -90,15 +95,12 @@ jobs:
             dist/**/*.dmg
           if-no-files-found: error # Keep error check
 
-      # Run tests
-      - run: npm test
-
   release:
     name: Release
     needs: build
     runs-on: ubuntu-latest
     # Trigger release job only on push to main with [release] in commit message OR manual dispatch
-    if: (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release]')) || github.event_name == 'workflow_dispatch'
+    if: (github.ref == 'refs/heads/master' && contains(github.event.head_commit.message, '[release]')) || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4
       - name: Download all installer artifacts
