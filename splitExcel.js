@@ -3,6 +3,19 @@ import fs from "fs";
 import path from "path";
 import xlsx from "xlsx";
 
+// Utility function to sanitize strings for use as filenames/directory names
+function sanitizeFilename(name) {
+  // Convert to string, handle potential null/undefined
+  const strName = String(name || "");
+  // Replace invalid characters with underscore
+  // Invalid chars: / \ : * ? " < > |
+  // Also replace leading/trailing dots or spaces which can be problematic
+  return strName
+    .replace(/[\\/:*?"<>|]/g, "_") // Replace core invalid chars
+    .replace(/^\.+|\.+$|^\s+|\s+$/g, "_") // Replace leading/trailing dots/spaces
+    .replace(/\s+/g, "_"); // Replace other spaces
+}
+
 /**
  * Splits the Excel file by 'project_code' and then by 'batch_code'.
  * Creates folders for each project_code and saves batch_code splits as Excel files.
@@ -37,43 +50,68 @@ export default async function splitExcel(inputPath, outputDir, sender) {
     );
   }
 
-  if (!data.length) {
-    // First try to get headers from the sheet
-    let headers = [];
-    try {
-      // Try getting headers from the first row of data if available
-      const firstRow = workbook.Sheets[sheetName]["!ref"]
-        ? xlsx.utils.decode_range(workbook.Sheets[sheetName]["!ref"])
-        : null;
-      if (firstRow) {
-        for (let c = firstRow.s.c; c <= firstRow.e.c; c++) {
-          const cell = xlsx.utils.encode_cell({ r: 0, c });
-          if (workbook.Sheets[sheetName][cell]) {
-            headers.push(workbook.Sheets[sheetName][cell].v);
-          }
-        }
-      }
+  // --- Refactored Header and Data Validation ---
 
-      // If no headers found, try sheet_to_json with header:1
-      if (!headers.length) {
-        const rawRows = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
-        headers = Array.isArray(rawRows[0]) ? rawRows[0] : rawRows[0] ? [rawRows[0]] : [];
-      }
-    } catch {
-      // If any error occurs, treat as empty/invalid
-      throw new Error("Input Excel file is empty or invalid.");
+  // 1. Get headers regardless of data presence
+  let headers = [];
+  try {
+    const sheet = workbook.Sheets[sheetName];
+    if (!sheet || !sheet["!ref"]) {
+      // Sheet is empty or invalid range
+      throw new Error("Input sheet is empty or invalid.");
     }
 
-    if (headers.length) {
-      if (!headers.includes("project_code") || !headers.includes("batch_code")) {
-        throw new Error("Input file must contain 'project_code' and 'batch_code' columns.");
+    // Attempt to get headers from the first row
+    const range = xlsx.utils.decode_range(sheet["!ref"]);
+    if (range.s.r === range.e.r && range.s.c > range.e.c) {
+      // Handle case where sheet might have formatting but no cells
+      throw new Error("Input sheet is empty or invalid.");
+    }
+
+    // Prioritize sheet_to_json with header:1 for robust header detection
+    const rawRows = xlsx.utils.sheet_to_json(sheet, { header: 1 });
+    if (rawRows.length > 0 && Array.isArray(rawRows[0])) {
+      headers = rawRows[0].map(String); // Ensure headers are strings
+    } else {
+      // Fallback: try reading first row cells directly if sheet_to_json fails
+      // This might happen with unusual sheet structures
+      const firstRow = range.s.r;
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cellAddress = xlsx.utils.encode_cell({ r: firstRow, c: C });
+        const cell = sheet[cellAddress];
+        headers.push(cell ? String(cell.v) : undefined); // Handle empty header cells
+      }
+      // Remove trailing undefined headers if any
+      while (headers.length > 0 && headers[headers.length - 1] === undefined) {
+        headers.pop();
       }
     }
-    throw new Error("Input Excel file is empty or invalid.");
+
+    if (headers.length === 0) {
+      // If still no headers, the sheet is effectively empty or unreadable
+      throw new Error("Could not read headers from the input sheet.");
+    }
+  } catch (err) {
+    console.error("Error extracting headers:", err);
+    // Rethrow a more specific error or the original one
+    throw new Error(`Failed to extract headers from the sheet: ${err.message || err}`);
   }
-  if (!("project_code" in data[0]) || !("batch_code" in data[0])) {
+
+  // 2. Validate required headers
+  if (!headers.includes("project_code") || !headers.includes("batch_code")) {
     throw new Error("Input file must contain 'project_code' and 'batch_code' columns.");
   }
+
+  // 3. Check if data exists
+  if (data.length === 0) {
+    // Headers are valid, but no data rows. This is not an error.
+    console.log("Input file contains headers but no data rows. Skipping split.");
+    // Optionally send a message back?
+    // if (sender) sender.send('status-update', 'Input file has headers but no data.');
+    return; // Exit successfully
+  }
+
+  // --- End Refactored Validation ---
 
   // Group by project_code
   const projects = {};
@@ -91,11 +129,15 @@ export default async function splitExcel(inputPath, outputDir, sender) {
   let processedProjects = 0;
 
   for (const [project, batches] of Object.entries(projects)) {
-    const projectDir = path.join(outputDir, String(project));
+    // Sanitize project code for directory name
+    const sanitizedProject = sanitizeFilename(project);
+    const projectDir = path.join(outputDir, sanitizedProject);
     if (!fs.existsSync(projectDir)) fs.mkdirSync(projectDir, { recursive: true });
 
     for (const [batch, rows] of Object.entries(batches)) {
-      const outPath = path.join(projectDir, `${batch}.xlsx`);
+      // Sanitize batch code for file name
+      const sanitizedBatch = sanitizeFilename(batch);
+      const outPath = path.join(projectDir, `${sanitizedBatch}.xlsx`);
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Sheet1");
 
@@ -129,14 +171,26 @@ export default async function splitExcel(inputPath, outputDir, sender) {
         rows: rows.map((row) => headers.map((header) => row[header])),
       });
 
-      await workbook.xlsx.writeFile(outPath);
-
-      // Send progress update
-      processedProjects++;
-      if (sender) {
-        const progress = Math.round((processedProjects / totalProjects) * 100);
-        sender.send("progress-update", progress); // Use 'progress-update' channel
+      // Add try-catch around file writing
+      try {
+        await workbook.xlsx.writeFile(outPath);
+      } catch (writeError) {
+        console.error(`Error writing file: ${outPath}`, writeError);
+        // Re-throw the error to be caught by the main IPC handler
+        throw new Error(
+          `Failed to write output file for batch ${sanitizedBatch}: ${writeError.message}`
+        );
       }
     }
+
+    // --- Corrected Progress Reporting ---
+    // Increment and report progress AFTER processing all batches for a project
+    processedProjects++;
+    if (sender) {
+      // Ensure progress doesn't exceed 100 due to rounding
+      const progress = Math.min(100, Math.round((processedProjects / totalProjects) * 100));
+      sender.send("progress-update", progress); // Use 'progress-update' channel
+    }
+    // --- End Corrected Progress Reporting ---
   }
 }

@@ -126,6 +126,5 @@ jobs:
           # Using commit SHA for tag to avoid potential conflicts
           tag: release-${{ github.sha }}
           name: "Automated Release ${{ github.run_number }}"
-          body: "This release was triggered automatically.\n\nIncluded assets:\n- Windows Setup (unsigned - may show security warning)\n- macOS DMG\n\nTo trigger a release, push to main with a commit message containing [release], or use the Run workflow button in Actions."
           draft: false
           prerelease: false

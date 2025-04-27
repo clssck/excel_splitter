@@ -5,6 +5,16 @@ import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import splitExcel from "../splitExcel.js";
 
+// --- Add sanitizeFilename function (copied from splitExcel.js) ---
+function sanitizeFilename(name) {
+  const strName = String(name || "");
+  return strName
+    .replace(/[\\/:*?"<>|]/g, "_")
+    .replace(/^\.+|\.+$|^\s+|\s+$/g, "_")
+    .replace(/\s+/g, "_");
+}
+// --- End Add ---
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -100,11 +110,17 @@ describe("splitExcel", () => {
     };
 
     for (const [projectCode, batches] of Object.entries(expectedFiles)) {
-      const projectDir = path.join(tempOutputDir, String(projectCode)); // Ensure project code is string for path
+      // --- Use sanitized name for checking directory ---
+      const sanitizedProjectCode = sanitizeFilename(projectCode);
+      const projectDir = path.join(tempOutputDir, sanitizedProjectCode);
+      // --- End Update ---
       expect(fs.existsSync(projectDir)).toBe(true);
 
       for (const [batchFile, expectedRows] of Object.entries(batches)) {
-        const batchFilePath = path.join(projectDir, batchFile);
+        // --- Use sanitized name for checking file path ---
+        const sanitizedBatchFile = sanitizeFilename(batchFile.replace(/\.xlsx$/, "")); // Sanitize base name
+        const batchFilePath = path.join(projectDir, `${sanitizedBatchFile}.xlsx`);
+        // --- End Update ---
         expect(fs.existsSync(batchFilePath)).toBe(true);
 
         // Read the generated file and verify its content
@@ -144,9 +160,8 @@ describe("splitExcel", () => {
     if (!fs.existsSync(emptyFilePath)) {
       throw new Error("Manual fixture empty.xlsx not found!");
     }
-    await expect(splitExcel(emptyFilePath, tempOutputDir)).rejects.toThrow(
-      "Input Excel file is empty or invalid."
-    );
+    // The function should now RESOLVE successfully for files with headers but no data.
+    await expect(splitExcel(emptyFilePath, tempOutputDir)).resolves.toBeUndefined();
   });
 
   test("should throw error if required columns are missing", async () => {
