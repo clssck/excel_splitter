@@ -39,13 +39,6 @@
   "build": {
     "appId": "com.example.excelprojectbatchsplitter",
     "productName": "ExcelProjectBatchSplitter",
-    "fileAssociations": [
-      {
-        "ext": "xlsx",
-        "name": "Excel File",
-        "role": "Editor"
-      }
-    ],
     "directories": {
       "output": "dist",
       "buildResources": "build"

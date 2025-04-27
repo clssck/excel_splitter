@@ -2,7 +2,9 @@ name: Node.js CI
 
 on:
   push:
-    branches: ["master, main"]
+    branches:
+      - master
+      - main
   # Trigger on push to master or main branch
   # Only trigger on commit messages containing [release] for release job
   # This is handled in the release job condition
