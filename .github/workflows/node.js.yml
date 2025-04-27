@@ -23,11 +23,11 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
+      fail-fast: false
       matrix:
         os: [windows-latest, macos-latest]
-        # Continue all builds even if one fails
-        fail-fast: false
         node-version: ["22.x"] # Using Node 22 from original file
+        # Continue all builds even if one fails
 
     steps:
       # Checkout repository
