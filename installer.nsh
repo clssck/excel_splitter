@@ -1,5 +1,9 @@
+; Modern NSIS configuration
+Unicode true
 !include "LogicLib.nsh"
 !include "MUI2.nsh"
+!include "Sections.nsh"  ; Required for section handling
+!insertmacro MUI_PAGE_COMPONENTS
 
 ;--------------------------------
 ; Installation Section
@@ -8,42 +12,52 @@
 !include "WinVer.nsh"
 
 !macro customInstall
-  Section "Custom Install"
-    ${DisableX64FSRedirection}
-
-    ${If} ${RunningX64}
-      SetRegView 64
-    ${Else}
-      SetRegView 32
+  Section "Custom Install" SEC_ARCH
+    ; Architecture-specific registry configuration
+    ; Register file association only if selected
+    ${If} ${SectionIsSelected} ${SEC_ASSOC}  ; Fixed section reference
+      AppAssocReg::SetAppAsDefaultAll "${APP_FILENAME}" ".xlsx" "ExcelProjectBatchSplitter Document" \
+        "" "$INSTDIR\resources\app.ico" "Split with ExcelProjectBatchSplitter"
     ${EndIf}
 
-    WriteRegStr HKCR "SystemFileAssociations\.xlsx\shell\Split with ExcelProjectBatchSplitter" "" "Split with ExcelProjectBatchSplitter"
-    WriteRegStr HKCR "SystemFileAssociations\.xlsx\shell\Split with ExcelProjectBatchSplitter\command" "" '"$INSTDIR\${APP_FILENAME}" "%1"'
+    # Application registration
+    ; Modern application registration with explicit architecture context
+    ; Modern application registration handled by AppAssocReg
 
-    ${If} ${AtLeastWinVista}
-      System::Call 'Shell32::SHChangeNotify(i 0x8000000, i 0, i 0, i 0)'
-    ${EndIf}
+    # Universal shell refresh
+    ${RefreshShellIcons}
+  SectionEnd
+!macroend
 
-    ${EnableX64FSRedirection}
-    SectionEnd
+!macro RefreshShellIcons
+  System::Call 'Shell32::SHChangeNotify(i ${SHCNE_ASSOCCHANGED}, i ${SHCNF_IDLIST}, i 0, i 0)'
 !macroend
 
 !macro customUnInstall
-  ${DisableX64FSRedirection}
-
-  DeleteRegKey HKCR "SystemFileAssociations\.xlsx\shell\Split with ExcelProjectBatchSplitter"
-
-  ${If} ${AtLeastWinVista}
-    System::Call 'Shell32::SHChangeNotify(i 0x8000000, i 0, i 0, i 0)'
-  ${EndIf}
-
-  ${EnableX64FSRedirection}
+  ${AppAssocReg::UnregisterExtension} "xlsx" "ExcelProjectBatchSplitter.xlsx"
+  DeleteRegKey SHCTX "Software\Microsoft\Windows\CurrentVersion\App Paths\${APP_FILENAME}"
+  ${RefreshShellIcons}
 !macroend
+
+; User-selectable File Associations
+SectionGroup /e "File Associations" GRP_ASSOC
+  Section "Excel Files" SEC_ASSOC
+    ; Modern association using AppAssocReg
+    AppAssocReg::SetAppAsDefaultAll "${APP_FILENAME}" ".xlsx" "ExcelProjectBatchSplitter Document" \
+      "" "$INSTDIR\resources\app.ico" "Split with ExcelProjectBatchSplitter"
+  ; This section is controlled by the checkbox
+  SectionIn 1 2  # Show in both install types
+  SectionSetText ${SEC_ASSOC} "Associate .xlsx files with ExcelProjectBatchSplitter"
+SectionEnd
+SectionGroupEnd
 
 ;--------------------------------
 ; Installer Attributes
 ;--------------------------------
-!define APP_FILENAME "ExcelProjectBatchSplitter.exe" ; Define the application executable name
+; Global Definitions
+!define APP_FILENAME "ExcelProjectBatchSplitter.exe"
+!define APP_REGKEY "Software\ExcelProjectBatchSplitter"
+!include "AppAssocReg.nsh"  ; Modern file association handling
 Name "ExcelProjectBatchSplitter"
 OutFile "Setup.exe"
 InstallDir "$PROGRAMFILES\ExcelProjectBatchSplitter"
