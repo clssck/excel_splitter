@@ -16,6 +16,7 @@
 - [Technical Requirements](#technical-requirements)
 - [Contributing](#contributing)
 - [Troubleshooting](#troubleshooting)
+- [Release Notes](#release-notes)
 - [License](#license)
 - [Roadmap](#roadmap)
 
@@ -35,7 +36,9 @@
 
 ### Download
 
-Go to the [Releases](https://github.com/clssck/excel_splitter/releases) page and download the latest installer for your platform:
+Go to the [Releases](https://github.com/clssck/excel_splitter/releases) page and download the latest installer for your platform.
+
+See [RELEASE_NOTES.md](./RELEASE_NOTES.md) for details about the current version.
 
 - Windows: `.zip` (extract and run the `.exe` inside)
 - macOS: `.dmg`
@@ -88,6 +91,12 @@ Contributions are welcome! Please:
 ## License
 
 MIT
+
+---
+
+## Release Notes
+
+See [RELEASE_NOTES.md](./RELEASE_NOTES.md) for a summary of features, changes, and known issues in each release.
 
 ---
 
