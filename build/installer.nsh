@@ -18,7 +18,8 @@ Unicode true
   Section "Application Files" SEC_FILES ; Renamed section for clarity
     SetOutPath "$INSTDIR"
     ; Assume files are packaged here by Electron Builder
-    File /r "./dist/win-unpacked/*.*" ; Adjust path as needed
+    ; Commenting out this line - Electron Builder handles main app file packaging
+    ; File /r "./dist/win-unpacked/*.*" ; Adjust path as needed
 
     ; Create Uninstaller
     WriteUninstaller "$INSTDIR\Uninstall.exe"
@@ -45,6 +46,7 @@ Unicode true
     ; Refresh Shell Icons after association change
     ${RefreshShellIcons}
   SectionEnd
+  SectionSetText ${SEC_ASSOC} "Add '${CONTEXT_DISPLAY}' to Excel file context menu"
 
 !macroend
 
@@ -119,4 +121,4 @@ InstallDir "$PROGRAMFILES\ExcelProjectBatchSplitter"
 RequestExecutionLevel admin
 
 ; User-selectable Context Menu - Keep the optional section logic
-SectionSetText ${SEC_ASSOC} "Add '${CONTEXT_DISPLAY}' to Excel file context menu"
+; SectionSetText ${SEC_ASSOC} "Add '${CONTEXT_DISPLAY}' to Excel file context menu"
