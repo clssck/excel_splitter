@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "excel-project-batch-splitter",
-  "productName": "ExcelSlitter",
+  "productName": "ExcelChopper",
   "author": "clssck",
   "version": "1.1.0",
   "description": "Electron app to split Excel files by project_code and batch_code with GUI file/directory selection.",
@@ -11,9 +11,9 @@
     "clean": "rimraf dist out",
     "build:win": "electron-builder --windows",
     "build:mac": "electron-builder --mac",
-    "dist:win": "(taskkill /IM ExcelProjectBatchSplitter.exe /F >nul 2>&1 & taskkill /IM electron.exe /F >nul 2>&1 & taskkill /IM node.exe /F >nul 2>&1 & timeout /t 2 /nobreak >nul) || exit 0 && npm run clean && npm run build:win",
-    "dist:mac": "(pkill -f ExcelProjectBatchSplitter || true; pkill -f electron || true; sleep 2) && npm run clean && npm run build:mac",
-    "postdist:mac": "xattr -cr dist/mac-arm64/ExcelProjectBatchSplitter.app || echo 'Failed to run xattr. Run manually if needed: xattr -cr dist/mac-arm64/ExcelProjectBatchSplitter.app'",
+    "dist:win": "powershell -Command \"try { taskkill /IM ExcelChopper.exe /F >$null 2>&1 } catch {} ; try { taskkill /IM electron.exe /F >$null 2>&1 } catch {} ; Start-Sleep -Seconds 2\" && npm run clean && npm run build:win",
+    "dist:mac": "(pkill -f ExcelChopper || true; pkill -f electron || true; sleep 2) && npm run clean && npm run build:mac",
+    "postdist:mac": "xattr -cr dist/mac-arm64/ExcelChopper.app || xattr -cr dist/mac/ExcelChopper.app || echo 'Failed to run xattr. Run manually if needed.'",
     "run:mac": "npm run dist:mac",
     "run:win": "npm run dist:win",
     "postinstall": "electron-builder install-app-deps",
@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "electron": "^35.2.1",
-    "electron-builder": "^24.13.3",
+    "electron-builder": "^26.0.12",
     "eslint": "^9.25.1",
     "globals": "^16.0.0",
     "husky": "^9.1.7",
@@ -38,7 +38,7 @@
   },
   "build": {
     "appId": "com.example.excelprojectbatchsplitter",
-    "productName": "ExcelProjectBatchSplitter",
+    "productName": "ExcelChopper",
     "directories": {
       "output": "dist",
       "buildResources": "build"

@@ -69,9 +69,13 @@ jobs:
       - name: Install NSIS
         if: matrix.os == 'windows-latest'
         run: |
-          choco install nsis --version 3.08 --no-progress --accept-license --force
-          echo "C:\Program Files (x86)\NSIS" >> $env:GITHUB_PATH
-          echo "ELECTRON_BUILDER_NSIS_PATH=C:\Program Files (x86)\NSIS" >> $env:GITHUB_ENV
+          # For electron-builder 26.0.12, we'll let it use its own bundled NSIS
+          # Remove any environment variables that might override electron-builder's NSIS path
+          if (Test-Path env:ELECTRON_BUILDER_NSIS_PATH) {
+            Remove-Item env:ELECTRON_BUILDER_NSIS_PATH
+          }
+          # Make sure we have the latest npm to avoid any compatibility issues
+          npm install -g npm
 
       # Build Windows Installer (unsigned) using npm script
       - name: Build Windows Installer

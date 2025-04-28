@@ -12,7 +12,7 @@ Unicode true
 !include "WinVer.nsh"
 
 ; Define Start Menu Folder
-!define STARTMENU_FOLDER "ExcelProjectBatchSplitter"
+!define STARTMENU_FOLDER "ExcelChopper"
 
 !macro customInstall
   Section "Application Files" SEC_FILES ; Renamed section for clarity
@@ -26,17 +26,18 @@ Unicode true
 
     ; Create Start Menu Shortcuts
     CreateDirectory "$SMPROGRAMS\${STARTMENU_FOLDER}"
-    CreateShortCut "$SMPROGRAMS\${STARTMENU_FOLDER}\Excel Project Batch Splitter.lnk" "$INSTDIR\${APP_FILENAME}"
-    CreateShortCut "$SMPROGRAMS\${STARTMENU_FOLDER}\Uninstall Excel Project Batch Splitter.lnk" "$INSTDIR\Uninstall.exe"
+    CreateShortCut "$SMPROGRAMS\${STARTMENU_FOLDER}\ExcelChopper.lnk" "$INSTDIR\${APP_FILENAME}"
+    CreateShortCut "$SMPROGRAMS\${STARTMENU_FOLDER}\Uninstall ExcelChopper.lnk" "$INSTDIR\Uninstall.exe"
 
   SectionEnd
 
+  /* Temporarily Commented Out Context Menu Section
   Section "Add 'Split with...' to Excel Context Menu (Optional)" SEC_ASSOC
     ; --- Add Context Menu Verb without changing default ---
     ; Verb name (internal)
-    !define CONTEXT_VERB "SplitWithExcelProjectBatchSplitter"
+    !define CONTEXT_VERB "SplitWithExcelChopper"
     ; Display name (shown in context menu)
-    !define CONTEXT_DISPLAY "Split with ExcelProjectBatchSplitter"
+    !define CONTEXT_DISPLAY "Split with ExcelChopper"
 
     ; Write the registry keys for the context menu item
     WriteRegStr HKCR "SystemFileAssociations\.xlsx\Shell\${CONTEXT_VERB}" "" "${CONTEXT_DISPLAY}"
@@ -46,7 +47,8 @@ Unicode true
     ; Refresh Shell Icons after association change
     ${RefreshShellIcons}
   SectionEnd
-  SectionSetText ${SEC_ASSOC} "Add '${CONTEXT_DISPLAY}' to Excel file context menu"
+  SectionSetText ${SEC_ASSOC} "Add '${CONTEXT_DISPLAY}' to Excel file context menu" ; Moved definition here
+  */
 
 !macroend
 
@@ -56,12 +58,12 @@ Unicode true
 
 !macro customUnInstall
   ; Remove Start Menu Shortcuts
-  Delete "$SMPROGRAMS\${STARTMENU_FOLDER}\Excel Project Batch Splitter.lnk"
-  Delete "$SMPROGRAMS\${STARTMENU_FOLDER}\Uninstall Excel Project Batch Splitter.lnk"
+  Delete "$SMPROGRAMS\${STARTMENU_FOLDER}\ExcelChopper.lnk"
+  Delete "$SMPROGRAMS\${STARTMENU_FOLDER}\Uninstall ExcelChopper.lnk"
   RMDir "$SMPROGRAMS\${STARTMENU_FOLDER}" ; Remove folder if empty
 
   ; --- Remove Context Menu Verb ---
-  !define CONTEXT_VERB "SplitWithExcelProjectBatchSplitter"
+  !define CONTEXT_VERB "SplitWithExcelChopper"
   DeleteRegKey HKCR "SystemFileAssociations\.xlsx\Shell\${CONTEXT_VERB}"
 
   ; Remove App Path registration (If it was ever added - potentially remove this if not needed)
@@ -112,13 +114,15 @@ Unicode true
 ; Installer Attributes
 ;--------------------------------
 ; Global Definitions
-!define APP_FILENAME "ExcelProjectBatchSplitter.exe"
-!define APP_REGKEY "Software\ExcelProjectBatchSplitter"
-!include "AppAssocReg.nsh"  ; Modern file association handling
-Name "ExcelProjectBatchSplitter"
+!define APP_FILENAME "ExcelChopper.exe"
+!define APP_REGKEY "Software\ExcelChopper"
+; Commented out as it may not be available in all NSIS installations
+; !include "AppAssocReg.nsh"  ; Modern file association handling
+Name "ExcelChopper"
 OutFile "Setup.exe"
-InstallDir "$PROGRAMFILES\ExcelProjectBatchSplitter"
+InstallDir "$PROGRAMFILES\ExcelChopper"
 RequestExecutionLevel admin
 
 ; User-selectable Context Menu - Keep the optional section logic
-; SectionSetText ${SEC_ASSOC} "Add '${CONTEXT_DISPLAY}' to Excel file context menu"
+; Commenting out as section is disabled
+; SectionSetText ${SEC_ASSOC} "Add '${CONTEXT_DISPLAY}' to Excel file context menu" ; Removed from here
