@@ -9,7 +9,7 @@
   "scripts": {
     "start": "electron .",
     "clean": "rimraf dist out",
-    "build:win": "electron-builder --windows",
+    "build:win": "electron-builder --windows --config.win.signAndEditExecutable=false",
     "build:mac": "electron-builder --mac",
     "dist:win": "powershell -Command \"try { taskkill /IM ExcelChopper.exe /F >$null 2>&1 } catch {} ; try { taskkill /IM electron.exe /F >$null 2>&1 } catch {} ; Start-Sleep -Seconds 2\" && npm run clean && npm run build:win",
     "dist:mac": "(pkill -f ExcelChopper || true; pkill -f electron || true; sleep 2) && npm run clean && npm run build:mac",
@@ -45,7 +45,8 @@
     },
     "win": {
       "target": "nsis",
-      "icon": "build/splitter_sprite.png"
+      "icon": "build/splitter_sprite.png",
+      "signAndEditExecutable": false
     },
     "mac": {
       "target": [

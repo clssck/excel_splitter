@@ -12,7 +12,9 @@ Unicode true
 !include "WinVer.nsh"
 
 ; Define Start Menu Folder
-!define STARTMENU_FOLDER "ExcelChopper"
+!ifndef STARTMENU_FOLDER
+  !define STARTMENU_FOLDER "ExcelChopper"
+!endif
 
 !macro customInstall
   Section "Application Files" SEC_FILES ; Renamed section for clarity
@@ -35,9 +37,13 @@ Unicode true
   Section "Add 'Split with...' to Excel Context Menu (Optional)" SEC_ASSOC
     ; --- Add Context Menu Verb without changing default ---
     ; Verb name (internal)
-    !define CONTEXT_VERB "SplitWithExcelChopper"
+    !ifndef CONTEXT_VERB
+      !define CONTEXT_VERB "SplitWithExcelChopper"
+    !endif
     ; Display name (shown in context menu)
-    !define CONTEXT_DISPLAY "Split with ExcelChopper"
+    !ifndef CONTEXT_DISPLAY
+      !define CONTEXT_DISPLAY "Split with ExcelChopper"
+    !endif
 
     ; Write the registry keys for the context menu item
     WriteRegStr HKCR "SystemFileAssociations\.xlsx\Shell\${CONTEXT_VERB}" "" "${CONTEXT_DISPLAY}"
@@ -63,7 +69,9 @@ Unicode true
   RMDir "$SMPROGRAMS\${STARTMENU_FOLDER}" ; Remove folder if empty
 
   ; --- Remove Context Menu Verb ---
-  !define CONTEXT_VERB "SplitWithExcelChopper"
+  !ifndef CONTEXT_VERB
+    !define CONTEXT_VERB "SplitWithExcelChopper"
+  !endif
   DeleteRegKey HKCR "SystemFileAssociations\.xlsx\Shell\${CONTEXT_VERB}"
 
   ; Remove App Path registration (If it was ever added - potentially remove this if not needed)
@@ -114,8 +122,12 @@ Unicode true
 ; Installer Attributes
 ;--------------------------------
 ; Global Definitions
-!define APP_FILENAME "ExcelChopper.exe"
-!define APP_REGKEY "Software\ExcelChopper"
+!ifndef APP_FILENAME
+  !define APP_FILENAME "ExcelChopper.exe"
+!endif
+!ifndef APP_REGKEY
+  !define APP_REGKEY "Software\ExcelChopper"
+!endif
 ; Commented out as it may not be available in all NSIS installations
 ; !include "AppAssocReg.nsh"  ; Modern file association handling
 Name "ExcelChopper"
