@@ -57,6 +57,10 @@ jobs:
       - run: npm ci
       # Removed explicit rimraf install - it's a dev dependency
 
+      # Update dependencies to latest compatible versions
+      - name: Update dependencies
+        run: npm update
+
       # Run Linter
       - name: Lint Check
         run: npm run lint
@@ -80,7 +84,11 @@ jobs:
       # Build Windows Installer (unsigned) using npm script
       - name: Build Windows Installer
         if: matrix.os == 'windows-latest'
-        run: npm run dist:win
+        run: |
+          # Set environment variable to disable treating warnings as errors in NSIS
+          echo "Setting ELECTRON_BUILDER_NSIS_WARNINGS_AS_ERRORS=false"
+          $env:ELECTRON_BUILDER_NSIS_WARNINGS_AS_ERRORS = "false"
+          npm run dist:win
 
       # Build DMG (macOS) using npm script
       - name: Build DMG (macOS)

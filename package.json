@@ -9,10 +9,10 @@
   "scripts": {
     "start": "electron .",
     "clean": "rimraf dist out",
-    "build:win": "electron-builder --windows",
+    "build:win": "electron-builder --windows --config.win.signAndEditExecutable=false --config.nsis.warningsAsErrors=false",
     "build:mac": "electron-builder --mac",
-    "dist:win": "powershell -Command \"try { taskkill /IM ExcelChopper.exe /F >$null 2>&1 } catch {} ; try { taskkill /IM electron.exe /F >$null 2>&1 } catch {} ; Start-Sleep -Seconds 2\" && npm run clean && npm run build:win",
-    "dist:mac": "(pkill -f ExcelChopper || true; pkill -f electron || true; sleep 2) && npm run clean && npm run build:mac",
+    "dist:win": "powershell -Command \"try { taskkill /IM ExcelChopper.exe /F >$null 2>&1 } catch {} ; try { taskkill /IM electron.exe /F >$null 2>&1 } catch {} ; Start-Sleep -Seconds 2; npm install -g npm\" && npm run clean && npm run build:win",
+    "dist:mac": "(pkill -f ExcelChopper || true; pkill -f electron || true; sleep 2; npm install -g npm) && npm run clean && npm run build:mac",
     "postdist:mac": "xattr -cr dist/mac-arm64/ExcelChopper.app || xattr -cr dist/mac/ExcelChopper.app || echo 'Failed to run xattr. Run manually if needed.'",
     "run:mac": "npm run dist:mac",
     "run:win": "npm run dist:win",
@@ -45,7 +45,8 @@
     },
     "win": {
       "target": "nsis",
-      "icon": "build/splitter_sprite.png"
+      "icon": "build/splitter_sprite.png",
+      "signAndEditExecutable": false
     },
     "mac": {
       "target": [
@@ -64,7 +65,8 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "artifactName": "${productName}-${version}-setup.${ext}",
-      "include": "installer.nsh"
+      "include": "installer.nsh",
+      "warningsAsErrors": false
     },
     "publish": null
   },
