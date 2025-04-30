@@ -65,7 +65,7 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "artifactName": "${productName}-${version}-setup.${ext}",
-      "include": "installer.nsh",
+      "include": "build/installer.nsh",
       "warningsAsErrors": false
     },
     "publish": null
