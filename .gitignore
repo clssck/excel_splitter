@@ -143,3 +143,4 @@ build/lab-vial-excel.svg
 /.roo
 .roomodes
 plan.md
+.vscode/settings.json

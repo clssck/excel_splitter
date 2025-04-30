@@ -3,6 +3,7 @@ Unicode true
 !include "LogicLib.nsh"
 !include "MUI2.nsh"
 !include "Sections.nsh"  ; Required for section handling
+!include "FileFunc.nsh"  ; Include FileFunc.nsh for standard shell functions
 !insertmacro MUI_PAGE_COMPONENTS
 
 ;--------------------------------
@@ -52,7 +53,15 @@ Unicode true
 
 !macroend
 
-!macro RefreshShellIcons
+; Using the standard RefreshShellIcons macro from FileFunc.nsh instead of defining our own
+!ifndef SHCNE_ASSOCCHANGED
+  !define SHCNE_ASSOCCHANGED 0x08000000
+!endif
+!ifndef SHCNF_IDLIST
+  !define SHCNF_IDLIST 0x0000
+!endif
+
+!macro CustomRefreshShellIcons
   System::Call 'Shell32::SHChangeNotify(i ${SHCNE_ASSOCCHANGED}, i ${SHCNF_IDLIST}, i 0, i 0)'
 !macroend
 
@@ -70,7 +79,7 @@ Unicode true
   ; DeleteRegKey SHCTX "Software\Microsoft\Windows\CurrentVersion\App Paths\${APP_FILENAME}"
 
   ; Refresh shell icons
-  ${RefreshShellIcons}
+  !insertmacro CustomRefreshShellIcons
 
   ; Remove files and main directory
   Delete "$INSTDIR\${APP_FILENAME}"
