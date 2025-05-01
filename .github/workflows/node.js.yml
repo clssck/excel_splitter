@@ -2,16 +2,14 @@ name: Node.js CI
 
 on:
   push:
-    branches:
-      - master
-      - main
-  # Trigger on push to master or main branch
-  # Only trigger on commit messages containing [release] for release job
-  # This is handled in the release job condition
-  pull_request:
-    branches: ["master, main"]
-  # Trigger on pull requests to master or main branch
-  workflow_dispatch: # Allow manual triggering from GitHub Actions UI
+    branches: [main]
+    paths:
+      - "**.js"
+      - "package.json"
+      - "build/**"
+  # Only trigger on push to main branch for JS/build changes
+  # Manual trigger still available
+  workflow_dispatch:
 
 permissions:
   contents: write # Needed for release creation
@@ -27,9 +25,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest]
-        node-version: ["22.x"] # Using Node 22 from original file
-        # Continue all builds even if one fails
+        os: [windows-2022, macos-12]
+        node-version: ["20.x", "22.x"]
+        include:
+          - os: windows-latest
+            node-version: "22.x"
+            experimental: false
+          - os: macos-latest
+            node-version: "20.x"
+            experimental: true
+        # Test multiple Node versions
+        # Windows uses stable Node 22
+        # Mac tests with Node 20 for compatibility
 
     steps:
       # Checkout repository
@@ -69,32 +76,40 @@ jobs:
       - name: Run Tests
         run: npm test
 
-      # Install NSIS on Windows for electron-builder
-      - name: Install NSIS
+      # Prepare Windows build environment
+      - name: Prepare Windows Build
         if: matrix.os == 'windows-latest'
         run: |
-          # For electron-builder 26.0.12, we'll let it use its own bundled NSIS
-          # Remove any environment variables that might override electron-builder's NSIS path
-          if (Test-Path env:ELECTRON_BUILDER_NSIS_PATH) {
-            Remove-Item env:ELECTRON_BUILDER_NSIS_PATH
-          }
-          # Make sure we have the latest npm to avoid any compatibility issues
+          # Clean NSIS cache
+          echo "Cleaning NSIS cache..."
+          Remove-Item -Recurse -Force "$env:LOCALAPPDATA\electron-builder\Cache\nsis" -ErrorAction SilentlyContinue
+
+          # Make sure we have the latest npm
           npm install -g npm
 
-      # Build Windows Installer (unsigned) using npm script
-      - name: Build Windows Installer
-        if: matrix.os == 'windows-latest'
-        run: |
-          # Set environment variable to disable treating warnings as errors in NSIS
-          echo "Setting ELECTRON_BUILDER_NSIS_WARNINGS_AS_ERRORS=false"
-          $env:ELECTRON_BUILDER_NSIS_WARNINGS_AS_ERRORS = "false"
-          npm run dist:win
+          # Show environment info for debugging
+          echo "Environment variables:"
+          Get-ChildItem env:
+          echo "Node version:"
+          node --version
+          echo "npm version:"
+          npm --version
+          echo "electron-builder version:"
+          npx electron-builder --version
 
-      # Build DMG (macOS) using npm script
+      # Build Windows zip package
+      - name: Build Windows Package
+        if: matrix.os == 'windows-latest'
+        run: npm run build:win
+
+      # Build platform packages
+      - name: Build Windows Package
+        if: matrix.os == 'windows-latest'
+        run: npm run build:win
+
       - name: Build DMG (macOS)
         if: matrix.os == 'macos-latest'
         run: npm run dist:mac
-        # Removed explicit dmg-license install
 
       # Debug: List files in dist/ after build
       - name: List dist files
@@ -116,7 +131,8 @@ jobs:
   release:
     name: Release
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
     # Trigger release job only on push to main with [release] in commit message OR manual dispatch
     if: (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release]')) || github.event_name == 'workflow_dispatch'
     steps:

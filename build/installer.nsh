@@ -53,6 +53,13 @@ RequestExecutionLevel admin
 ; MUI Settings
 !define MUI_ABORTWARNING
 
+; Clear any previous language settings before MUI init
+!macro preInit
+  !define MUI_LANGDLL_REGISTRY_ROOT ""
+  !define MUI_LANGDLL_REGISTRY_KEY ""
+  !define MUI_LANGDLL_REGISTRY_VALUENAME ""
+!macroend
+
 ; Define pages
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_DIRECTORY
