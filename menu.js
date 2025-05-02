@@ -1,6 +1,6 @@
-import { app, shell, Menu } from "electron";
+import { app, Menu, shell } from "electron";
 
-export function createMenu() {
+export function createMenu(mainWindow) {
   const isMac = process.platform === "darwin";
 
   const template = [
@@ -81,6 +81,13 @@ export function createMenu() {
     {
       role: "help",
       submenu: [
+        {
+          label: "Check for Updates",
+          click: () => {
+            mainWindow.webContents.send("check-for-updates");
+          },
+        },
+        { type: "separator" },
         {
           label: "Learn More", // Example custom link
           click: async () => {

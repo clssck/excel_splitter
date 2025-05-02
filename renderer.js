@@ -8,6 +8,82 @@ window.addEventListener("DOMContentLoaded", () => {
   }
   // --- End Test ---
 
+  // Get update-related elements
+  const updateStatusDiv = document.getElementById("update-status");
+  const updateMessageDiv = document.getElementById("update-message");
+  const updateActionsDiv = document.getElementById("update-actions");
+  const updateButton = document.getElementById("update-button");
+
+  let updateUrl = null;
+
+  // Handle update button click
+  updateButton.addEventListener("click", async () => {
+    if (updateUrl) {
+      try {
+        await window.electronAPI.openUpdateLink(updateUrl);
+      } catch (err) {
+        console.error("Error opening update link:", err);
+      }
+    }
+  });
+
+  // Register handler for update status events
+  window.electronAPI.onUpdateStatus((status) => {
+    console.log("Received update status:", status);
+
+    // Show the update status section
+    updateStatusDiv.style.display = "block";
+
+    // Handle different status types
+    if (status.type === "checking") {
+      updateMessageDiv.textContent = "Checking for updates...";
+      updateActionsDiv.style.display = "none";
+      updateMessageDiv.style.color = "#a0bfff";
+    } else if (status.type === "available") {
+      // Format the version display based on whether it's a standard version or not
+      const versionDisplay = status.version.includes("non-standard")
+        ? status.version
+        : `v${status.version}`;
+
+      updateMessageDiv.textContent = `Update available: ${versionDisplay} (you have v${status.currentVersion})`;
+      updateUrl = status.url;
+      updateActionsDiv.style.display = "block";
+      updateMessageDiv.style.color = "#4fd18c";
+    } else if (status.type === "not-available") {
+      updateMessageDiv.textContent = `You're using the latest version (v${status.currentVersion})`;
+      updateActionsDiv.style.display = "none";
+      updateMessageDiv.style.color = "#a0bfff";
+
+      // Hide the update status after 5 seconds
+      setTimeout(() => {
+        updateStatusDiv.style.display = "none";
+      }, 5000);
+    } else if (status.type === "error") {
+      updateMessageDiv.textContent = `Update check failed: ${status.error}`;
+      updateActionsDiv.style.display = "none";
+      updateMessageDiv.style.color = "#ff4d4f";
+
+      // Hide the update status after 5 seconds
+      setTimeout(() => {
+        updateStatusDiv.style.display = "none";
+      }, 5000);
+    } else if (status.type === "no-releases") {
+      updateMessageDiv.textContent = `No official releases found (current: v${status.currentVersion})`;
+      updateActionsDiv.style.display = "none";
+      updateMessageDiv.style.color = "#a0bfff";
+
+      // Hide the update status after 5 seconds
+      setTimeout(() => {
+        updateStatusDiv.style.display = "none";
+      }, 5000);
+    }
+  });
+
+  // Check for updates when the app starts
+  setTimeout(() => {
+    window.electronAPI.checkForUpdates();
+  }, 1000);
+
   const inputFile = document.getElementById("inputFile");
   const outputDir = document.getElementById("outputDir");
   const browseInput = document.getElementById("browseInput");
