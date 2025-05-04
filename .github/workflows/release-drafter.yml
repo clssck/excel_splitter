@@ -1,0 +1,30 @@
+# .github/workflows/release-drafter.yml
+name: Release Drafter
+
+on:
+  push:
+    # Branches to consider for drafting the next release
+    branches:
+      - main
+
+permissions:
+  contents: read # Read repo contents
+  pull-requests: write # Write comments/labels on PRs (for autolabeler)
+  # Required for release-drafter/release-drafter@v6:
+  # Allows creating/updating draft releases
+  releases: write
+
+jobs:
+  update_release_draft:
+    runs-on: ubuntu-latest
+    steps:
+      # Drafts the next release notes as Pull Requests are merged into "main"
+      - uses: release-drafter/release-drafter@v6 # Use the latest stable version
+        # Ensure you have a GITHUB_TOKEN secret available. It's typically provided by default.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Use the config file we created
+          config-name: release-drafter.yml
+          # Optionally disable autolabeler if you prefer manual labeling
+          # disable-autolabeler: true

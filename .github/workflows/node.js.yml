@@ -95,10 +95,14 @@ jobs:
       # Build platform packages
       - name: Build Windows Package
         if: matrix.os == 'windows-latest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run dist:win
 
       - name: Build DMG (macOS)
         if: matrix.os == 'macos-latest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run dist:mac
 
       # Debug: List files in dist/ after build
@@ -106,65 +110,3 @@ jobs:
         run: |
           echo "Listing dist/ contents:"
           ls -R dist || dir dist /s /b dist
-
-      # Upload built installers as artifacts for release job
-      - name: Upload Windows artifacts
-        if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-artifacts
-          path: |
-            dist/*.zip
-          if-no-files-found: error # Keep error check
-
-      - name: Upload macOS artifacts
-        if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-artifacts
-          path: |
-            dist/*.dmg
-            dist/**/*.dmg
-          if-no-files-found: error # Keep error check
-
-  release:
-    name: Release
-    needs: build
-    runs-on: ubuntu-22.04
-    timeout-minutes: 30
-    # Trigger release job only on push to main with [release] in commit message OR manual dispatch
-    if: (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release]')) || github.event_name == 'workflow_dispatch'
-    steps:
-      - uses: actions/checkout@v4
-      - name: Download all installer artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: dist # Download all artifacts into dist directory
-          # No specific name needed, download all
-
-      # Debug: List downloaded artifacts
-      - name: List downloaded artifacts
-        run: ls -R dist
-
-      - name: Create GitHub Release and Upload Installers
-        uses: ncipollo/release-action@v1
-        with:
-          # Artifact path adjusted to match downloaded structure
-          artifacts: "dist/windows-artifacts/*.zip,dist/macos-artifacts/*.dmg"
-          token: ${{ secrets.GITHUB_TOKEN }}
-          # Using commit SHA for tag to avoid potential conflicts
-          tag: release-${{ github.sha }}
-          name: "v1.1.0 release"
-          body: |
-            # ExcelChopper v1.1.0
-
-            ## Improvements
-            - Fixed update check logic for non-standard version tags
-            - Improved version comparison with GitHub releases
-            - Updated build process for better compatibility
-
-            ## Downloads
-            - Windows: Download the .zip file, extract, and run ExcelChopper.exe
-            - macOS: Download the .dmg file and install as usual
-          draft: false
-          prerelease: false

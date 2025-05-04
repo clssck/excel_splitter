@@ -11,11 +11,11 @@
     <!-- Disable library validation for Node.js native modules -->
     <key>com.apple.security.cs.disable-library-validation</key>
     <true/>
-    <!-- If your app needs network access -->
-    <!-- <key>com.apple.security.network.client</key> -->
-    <!-- <true/> -->
-    <!-- If your app needs to access user-selected files (add others as needed) -->
-    <!-- <key>com.apple.security.files.user-selected.read-write</key> -->
-    <!-- <true/> -->
+    <!-- Network access for updates -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+    <!-- File system access for Excel operations -->
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
   </dict>
 </plist>

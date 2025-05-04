@@ -95,10 +95,16 @@ window.addEventListener("DOMContentLoaded", () => {
   let isDialogOpen = false; // Flag to prevent multiple dialogs
 
   // Handle progress updates from main process
-  // Temporarily commented out for debugging
-  // window.electronAPI.onProgressUpdate((progress) => {
-  //   statusDiv.textContent = `Processing... ${progress}%`;
-  // });
+  window.electronAPI.onProgressUpdate((progress) => {
+    // Update progress with animation for smoother UI
+    requestAnimationFrame(() => {
+      statusDiv.textContent = `Processing... ${progress}%`;
+
+      // Optional: Update a progress bar if you add one to the UI
+      // const progressBar = document.getElementById('progressBar');
+      // if (progressBar) progressBar.value = progress;
+    });
+  });
 
   browseInput.addEventListener("click", async () => {
     if (isDialogOpen) return; // Prevent opening multiple dialogs
@@ -136,52 +142,113 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  splitBtn.addEventListener("click", async () => {
-    statusDiv.textContent = "";
-    errorDiv.textContent = "";
-    const inputPath = inputFile.value;
-    const outDir = outputDir.value;
-    if (!inputPath) {
-      errorDiv.textContent = "Please select an input Excel file.";
-      return;
-    }
-    if (!outDir) {
-      errorDiv.textContent = "Please select an output directory.";
-      return;
-    }
+  // Add a debounce function to prevent multiple rapid clicks
+  function debounce(func, wait) {
+    let timeout;
+    return function (...args) {
+      const context = this;
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(context, args), wait);
+    };
+  }
 
-    // Disable button and show initial status
-    splitBtn.disabled = true;
-    splitBtn.textContent = "Splitting..."; // Optional: Change button text
-    statusDiv.textContent = "Processing... 0%";
+  // Create a progress bar element
+  const progressBarContainer = document.createElement("div");
+  progressBarContainer.style.width = "100%";
+  progressBarContainer.style.height = "6px";
+  progressBarContainer.style.backgroundColor = "#232526";
+  progressBarContainer.style.borderRadius = "3px";
+  progressBarContainer.style.marginTop = "10px";
+  progressBarContainer.style.overflow = "hidden";
+  progressBarContainer.style.display = "none";
 
-    try {
-      const result = await window.electronAPI.splitExcel(inputPath, outDir);
-      if (result.success) {
-        statusDiv.textContent = "Files split and saved successfully.";
-      } else {
-        // Keep progress message if splitting finished but had an error reported
-        errorDiv.textContent = result.error || "An error occurred during splitting.";
-        if (!statusDiv.textContent.includes("Processing")) {
-          statusDiv.textContent = ""; // Clear status only if it wasn't showing progress
-        }
+  const progressBar = document.createElement("div");
+  progressBar.style.width = "0%";
+  progressBar.style.height = "100%";
+  progressBar.style.backgroundColor = "var(--accent)";
+  progressBar.style.transition = "width 0.3s ease-in-out";
+
+  progressBarContainer.appendChild(progressBar);
+  document.querySelector(".row:nth-child(3)").appendChild(progressBarContainer);
+
+  // Update the progress bar with debounced updates to improve performance
+  window.electronAPI.onProgressUpdate(
+    debounce((progress) => {
+      progressBar.style.width = `${progress}%`;
+    }, 50)
+  ); // 50ms debounce time
+
+  // Handle split button click with optimized UI feedback
+  splitBtn.addEventListener(
+    "click",
+    debounce(async () => {
+      // Clear previous messages
+      statusDiv.textContent = "";
+      errorDiv.textContent = "";
+
+      // Get input and output paths
+      const inputPath = inputFile.value;
+      const outDir = outputDir.value;
+
+      // Validate inputs
+      if (!inputPath) {
+        errorDiv.textContent = "Please select an input Excel file.";
+        return;
       }
-    } catch (err) {
-      // Handle errors from the invoke call itself (e.g., main process crash)
-      errorDiv.textContent = err.message || String(err);
-      statusDiv.textContent = ""; // Clear status on invoke error
-    } finally {
-      // Re-enable button regardless of success or failure
-      splitBtn.disabled = false;
-      splitBtn.textContent = "Split File"; // Restore original text
-      // Optional: Clear progress text a bit later or on next action
-      // setTimeout(() => {
-      //   if (statusDiv.textContent.includes("Processing")) {
-      //     statusDiv.textContent = "";
-      //   }
-      // }, 5000); // Clear after 5 seconds if still showing progress
-    }
-  });
+      if (!outDir) {
+        errorDiv.textContent = "Please select an output directory.";
+        return;
+      }
+
+      // Disable button and show initial status with animation
+      splitBtn.disabled = true;
+      splitBtn.textContent = "Splitting...";
+      statusDiv.textContent = "Preparing...";
+
+      // Show progress bar
+      progressBarContainer.style.display = "block";
+      progressBar.style.width = "0%";
+
+      // Add a small delay to allow UI to update before heavy processing
+      setTimeout(async () => {
+        try {
+          // Start the actual processing
+          const startTime = performance.now();
+          const result = await window.electronAPI.splitExcel(inputPath, outDir);
+          const endTime = performance.now();
+          const processingTime = ((endTime - startTime) / 1000).toFixed(2);
+
+          if (result.success) {
+            // Success message with processing time
+            statusDiv.textContent = `Files split and saved successfully in ${processingTime} seconds.`;
+
+            // Animate progress to 100% for visual completion
+            progressBar.style.width = "100%";
+
+            // Hide progress bar after a delay
+            setTimeout(() => {
+              progressBarContainer.style.display = "none";
+            }, 1500);
+          } else {
+            // Error handling
+            errorDiv.textContent = result.error || "An error occurred during splitting.";
+            progressBarContainer.style.display = "none";
+          }
+        } catch (err) {
+          // Handle errors from the invoke call itself
+          errorDiv.textContent = err.message || String(err);
+          statusDiv.textContent = "";
+          progressBarContainer.style.display = "none";
+        } finally {
+          // Re-enable button with a small delay to prevent accidental double-clicks
+          setTimeout(() => {
+            splitBtn.disabled = false;
+            splitBtn.textContent = "Split File";
+          }, 500);
+        }
+      }, 50); // Small delay for UI responsiveness
+    }, 300)
+  ); // 300ms debounce time to prevent accidental double-clicks
 });
 
 /* --- Easter Egg: Doom God Mode Matrix Emoji Rain --- */

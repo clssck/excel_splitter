@@ -1,6 +1,8 @@
 import { app, Menu, shell } from "electron";
+import pkg from "electron-updater"; // Import electron-updater
+const { autoUpdater } = pkg; // Get autoUpdater
 
-export function createMenu(mainWindow) {
+export function createMenu() { // mainWindow parameter removed as it was unused
   const isMac = process.platform === "darwin";
 
   const template = [
@@ -84,7 +86,8 @@ export function createMenu(mainWindow) {
         {
           label: "Check for Updates",
           click: () => {
-            mainWindow.webContents.send("check-for-updates");
+            // Directly call electron-updater's check function
+            autoUpdater.checkForUpdatesAndNotify();
           },
         },
         { type: "separator" },

@@ -1,7 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, nativeImage, shell } from "electron";
 import pkg from "electron-updater";
 import fs from "fs";
-import fetch from "node-fetch";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url"; // Import necessary modules
 import { createMenu } from "./menu.js"; // Import the menu creation function
@@ -22,209 +21,140 @@ if (appIcon.isEmpty()) {
 
 let mainWindow; // Track main window globally
 
-// Configure auto updates
-autoUpdater.autoDownload = false;
-autoUpdater.autoInstallOnAppQuit = true;
-autoUpdater.allowPrerelease = false;
+// Configure auto updates only for packaged app
+if (app.isPackaged) {
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.allowPrerelease = false; // Set to true if you want beta releases
 
-/**
- * Checks for application updates and sends status to the renderer
- * Works in both development and production builds
- */
-async function checkForUpdates() {
+  // Handle update errors
+  autoUpdater.on("error", (error) => {
+    const errorTime = new Date().toISOString();
+    const errorMessage = `Update Error: ${error.message || error}`;
+    logStream.write(`[${errorTime}] ${errorMessage}\n`);
+    // Avoid showing dialog during startup, rely on menu check or log file
+    console.error("Auto-update check failed:", errorMessage);
+    // Optionally show a less intrusive notification if needed later
+    // dialog.showErrorBox("Update Error", `Failed to check for updates: ${error.message || error}`);
+  });
+
+  // Handle successful download
+  autoUpdater.on("update-downloaded", () => {
+    logStream.write(`[${new Date().toISOString()}] Update downloaded, prompting user.\n`);
+    dialog
+      .showMessageBox({
+        type: "info",
+        buttons: ["Restart", "Later"],
+        title: "Update Ready",
+        message: "A new version has been downloaded. Restart the application to apply the updates.",
+      })
+      .then(({ response }) => {
+        if (response === 0) {
+          logStream.write(`[${new Date().toISOString()}] User chose to restart for update.\n`);
+          autoUpdater.quitAndInstall();
+        } else {
+          logStream.write(`[${new Date().toISOString()}] User chose to update later.\n`);
+        }
+      });
+  });
+}
+
+// ALWAYS run in portable mode - no configuration needed
+// This makes the app truly standalone with no external dependencies
+
+// Get the app's location
+const appPath = app.getAppPath();
+const appDir = path.dirname(app.isPackaged ? app.getPath("exe") : appPath);
+
+// For development, use the current directory
+// For production, use the directory containing the executable
+const appRootDir = app.isPackaged
+  ? path.resolve(appDir, "..", "..", "..") // Go up from MacOS/Contents/Resources
+  : appDir;
+
+console.log("App root directory:", appRootDir);
+
+// Always use a local data directory
+const dataDir = path.join(appRootDir, "Data");
+console.log("Data directory:", dataDir);
+
+// Create data directory if it doesn't exist
+if (!fs.existsSync(dataDir)) {
   try {
-    // GitHub repository information
-    const owner = "clssck";
-    const repo = "excel_splitter";
-    const releaseUrl = `https://github.com/${owner}/${repo}/releases/latest`;
-
-    // Get current version from package.json
-    const currentVersion = app.getVersion();
-    console.log(`Current version: ${currentVersion}`);
-
-    // Notify renderer that we're checking for updates
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send("update-status", {
-        type: "checking",
-        currentVersion,
-      });
-    }
-
-    try {
-      console.log(
-        `Checking for updates from: https://api.github.com/repos/${owner}/${repo}/releases/latest`
-      );
-
-      // Fetch the latest release information from GitHub
-      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/latest`);
-      const data = await response.json();
-
-      console.log("GitHub API response status:", response.status);
-      console.log("GitHub API response data:", JSON.stringify(data, null, 2));
-
-      // Send appropriate status to renderer
-      if (response.ok && data && data.tag_name) {
-        // Extract version information from the release
-        let latestVersion = data.tag_name.replace(/^v/, "");
-        const releaseName = data.name || "";
-
-        // Check if this is a non-standard version tag (like a commit hash or release tag)
-        const isStandardVersion = /^\d+\.\d+\.\d+(-.*)?$/.test(latestVersion);
-
-        // If it's not a standard version, try to extract version from release name
-        if (!isStandardVersion && releaseName) {
-          const versionMatch = releaseName.match(/v?(\d+\.\d+\.\d+)/);
-          if (versionMatch) {
-            latestVersion = versionMatch[1];
-          }
-        }
-
-        console.log(`Latest version tag: ${data.tag_name}`);
-        console.log(`Parsed latest version: ${latestVersion}`);
-        console.log(`Current version: ${currentVersion}`);
-
-        // For non-standard versions, check if the release contains a newer version
-        // by comparing version numbers if possible
-        let hasUpdate = false;
-
-        if (isStandardVersion) {
-          // For standard versions, compare directly
-          hasUpdate = latestVersion !== currentVersion;
-        } else if (/^\d+\.\d+\.\d+(-.*)?$/.test(latestVersion)) {
-          // If we extracted a standard version from the release name
-          const latestParts = latestVersion.split(".").map((p) => parseInt(p, 10));
-          const currentParts = currentVersion.split(".").map((p) => parseInt(p, 10));
-
-          // Compare major.minor.patch
-          for (let i = 0; i < 3; i++) {
-            if (latestParts[i] > currentParts[i]) {
-              hasUpdate = true;
-              break;
-            } else if (latestParts[i] < currentParts[i]) {
-              hasUpdate = false;
-              break;
-            }
-          }
-        } else {
-          // If we can't determine version from the tag, try to extract it from the release assets
-          const assetVersionMatch =
-            data.assets && data.assets.length > 0
-              ? data.assets[0].name.match(/(\d+\.\d+\.\d+)/)
-              : null;
-
-          if (assetVersionMatch) {
-            // If we found a version in the assets, use proper version comparison
-            const assetVersion = assetVersionMatch[1];
-            const assetParts = assetVersion.split(".").map((p) => parseInt(p, 10));
-            const currentParts = currentVersion.split(".").map((p) => parseInt(p, 10));
-
-            // Compare major.minor.patch
-            for (let i = 0; i < 3; i++) {
-              if (assetParts[i] > currentParts[i]) {
-                hasUpdate = true;
-                break;
-              } else if (assetParts[i] < currentParts[i]) {
-                hasUpdate = false;
-                break;
-              }
-            }
-
-            // Set the display version to the one found in assets
-            latestVersion = `${data.name || "v" + assetVersion} (non-standard version)`;
-          } else {
-            // If we still can't determine version, don't assume an update is available
-            // if the current version is already 1.0.0 or higher (production release)
-            const currentParts = currentVersion.split(".").map((p) => parseInt(p, 10));
-            hasUpdate = currentParts[0] < 1; // Only suggest update if current is pre-1.0
-            latestVersion = `${data.name || data.tag_name} (non-standard version)`;
-          }
-        }
-
-        if (hasUpdate) {
-          // Update available
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send("update-status", {
-              type: "available",
-              currentVersion,
-              version: latestVersion,
-              url: releaseUrl,
-            });
-          }
-        } else {
-          // Using latest version
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send("update-status", {
-              type: "not-available",
-              currentVersion,
-            });
-          }
-        }
-      } else if (response.status === 404) {
-        // 404 typically means no releases found
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send("update-status", {
-            type: "no-releases",
-            currentVersion,
-          });
-        }
-      } else {
-        // Other API errors
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send("update-status", {
-            type: "error",
-            currentVersion,
-            error: `GitHub API returned status: ${response.status}`,
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Update check failed:", error);
-
-      // Send error to renderer
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send("update-status", {
-          type: "error",
-          currentVersion,
-          error: error.message || "Unknown error",
-        });
-      }
-    }
-  } catch (error) {
-    console.error("Update check initialization failed:", error);
-
-    // Send error to renderer
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send("update-status", {
-        type: "error",
-        currentVersion: app.getVersion(),
-        error: error.message || "Failed to initialize update check",
-      });
-    }
+    fs.mkdirSync(dataDir, { recursive: true });
+    console.log(`Created data directory: ${dataDir}`);
+  } catch (err) {
+    console.error(`Failed to create data directory: ${err.message}`);
   }
 }
 
-autoUpdater.on("update-downloaded", () => {
-  dialog
-    .showMessageBox({
-      type: "info",
-      buttons: ["Restart", "Later"],
-      title: "Update Ready",
-      message: "Update downloaded. Restart to apply?",
-    })
-    .then(({ response }) => {
-      if (response === 0) {
-        autoUpdater.quitAndInstall();
-      }
-    });
-});
+// Fix permissions automatically on macOS
+if (process.platform === "darwin" && app.isPackaged) {
+  try {
+    // Get paths
+    const macOSBinPath = app.getPath("exe");
+    const appBundle = path.resolve(macOSBinPath, "..", "..", "..");
+    const macOSDir = path.join(appBundle, "Contents", "MacOS");
+
+    console.log("App bundle:", appBundle);
+    console.log("MacOS directory:", macOSDir);
+
+    // Fix executable permissions silently
+    try {
+      fs.chmodSync(macOSBinPath, 0o755);
+      console.log("Fixed executable permissions");
+    } catch (permErr) {
+      console.log("Could not change permissions:", permErr.message);
+    }
+
+    // Try to remove quarantine attribute silently
+    try {
+      const { execSync } = require("child_process");
+      execSync(`xattr -d com.apple.quarantine "${appBundle}" 2>/dev/null`);
+    } catch {
+      // Variable removed as it's unused
+      // Ignore - this is expected to fail if no quarantine attribute exists
+    }
+  } catch (err) {
+    // Just log errors but continue - don't crash the app
+    console.error("Error during startup:", err.message);
+  }
+}
 
 // Configure error logging
-const logStream = fs.createWriteStream(
-  path.join(app.getPath("appData"), "excel-splitter-logs.txt"),
-  {
-    flags: "a",
+const logPath = path.join(dataDir, "excel-splitter-logs.txt");
+console.log(`Setting up log file at: ${logPath}`);
+console.log("Running in portable mode");
+
+// Ensure log directory exists
+const logDir = path.dirname(logPath);
+if (!fs.existsSync(logDir)) {
+  try {
+    fs.mkdirSync(logDir, { recursive: true });
+  } catch (err) {
+    console.error(`Failed to create log directory: ${err.message}`);
   }
-);
+}
+
+const logStream = fs.createWriteStream(logPath, {
+  flags: "a",
+});
+
+// Write startup information to log
+const startupTime = new Date().toISOString();
+logStream.write(`\n[${startupTime}] ========== APPLICATION STARTUP ==========\n`);
+logStream.write(`[${startupTime}] App version: ${app.getVersion()}\n`);
+logStream.write(`[${startupTime}] Platform: ${process.platform}\n`);
+logStream.write(`[${startupTime}] Architecture: ${process.arch}\n`);
+logStream.write(`[${startupTime}] Node version: ${process.versions.node}\n`);
+logStream.write(`[${startupTime}] Electron version: ${process.versions.electron}\n`);
+logStream.write(`[${startupTime}] Chrome version: ${process.versions.chrome}\n`);
+logStream.write(`[${startupTime}] App path: ${app.getAppPath()}\n`);
+logStream.write(`[${startupTime}] __dirname: ${__dirname}\n`);
+logStream.write(`[${startupTime}] Is packaged: ${app.isPackaged}\n`);
+logStream.write(`[${startupTime}] Running in: portable mode\n`);
+logStream.write(`[${startupTime}] Data directory: ${dataDir}\n`);
+logStream.write(`[${startupTime}] Executable path: ${app.getPath("exe")}\n`);
 
 // Enhanced error handling functions
 function handleCriticalError(title, error) {
@@ -288,6 +218,20 @@ function createWindow() {
 
   // Create main window with additional error handling
   try {
+    // Check if preload.js exists before creating the window
+    const preloadPath = path.join(__dirname, "preload.js");
+    try {
+      fs.accessSync(preloadPath, fs.constants.R_OK);
+      logStream.write(`[${new Date().toISOString()}] Preload file exists at: ${preloadPath}\n`);
+    } catch (preloadError) {
+      logStream.write(
+        `[${new Date().toISOString()}] ERROR: Preload file not accessible: ${preloadPath}\n`
+      );
+      logStream.write(`[${new Date().toISOString()}] Error details: ${preloadError.message}\n`);
+      handleCriticalError("Preload File Not Found", preloadError);
+      return;
+    }
+
     mainWindow = new BrowserWindow({
       width: 900,
       height: 700,
@@ -296,7 +240,7 @@ function createWindow() {
       show: false, // Hide until ready
       icon: appIcon,
       webPreferences: {
-        preload: path.join(__dirname, "preload.js"),
+        preload: preloadPath,
         contextIsolation: true,
         nodeIntegration: false,
         sandbox: true,
@@ -304,12 +248,25 @@ function createWindow() {
       backgroundColor: "#181a1b",
     });
 
+    // Log window creation success
+    logStream.write(`[${new Date().toISOString()}] Main window created successfully\n`);
+
     // Handle window ready-to-show
     mainWindow.once("ready-to-show", () => {
+      logStream.write(`[${new Date().toISOString()}] Main window ready to show\n`);
       splash.destroy();
       mainWindow.show();
     });
+
+    // Handle window errors
+    mainWindow.webContents.on("did-fail-load", (event, errorCode, errorDescription) => {
+      logStream.write(
+        `[${new Date().toISOString()}] Window load failed: ${errorDescription} (${errorCode})\n`
+      );
+      handleCriticalError("Window Load Failed", new Error(`${errorDescription} (${errorCode})`));
+    });
   } catch (error) {
+    logStream.write(`[${new Date().toISOString()}] Window creation failed: ${error.message}\n`);
     splash.destroy();
     handleCriticalError("Window Creation Failed", error);
   }
@@ -429,24 +386,6 @@ ipcMain.handle("split-excel", async (event, { inputPath, outputDir }) => {
       error: error.message || String(error),
       stack: error.stack,
     };
-  }
-});
-
-// Listen for manual update check requests
-ipcMain.on("check-for-updates", async () => {
-  try {
-    console.log("Manual update check requested");
-    await checkForUpdates();
-    console.log("Manual update check completed");
-  } catch (error) {
-    console.error("Manual update check failed:", error);
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send("update-status", {
-        type: "error",
-        currentVersion: app.getVersion(),
-        error: error.message || "Failed to check for updates",
-      });
-    }
   }
 });
 
