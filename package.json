@@ -23,7 +23,7 @@
     "electron-updater": "^6.6.2",
     "exceljs": "^4.4.0",
     "graceful-fs": "^4.2.11",
-    "undici": "^7.8.0",
+    "undici": "^7.9.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
